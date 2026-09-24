@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4f6f2;
+  --surface: #fbfcfa;
+  --sage: #e2eadf;
+  --ink: #14231c;
+  --muted: #56665d;
+  --line: #d6ded4;
+  --forest: #1c3528;
+  --on-forest: #e9f0ea;
+  --accent: #c8461f;
+  --accent-hover: #ae3b18;
+  --on-accent: #fbfcfa;
+  --shadow: 20 35 28;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1813;
+    --surface: #14211a;
+    --sage: #1a2b22;
+    --ink: #e7eee9;
+    --muted: #9aaba1;
+    --line: #26382e;
+    --forest: #213f30;
+    --on-forest: #e9f0ea;
+    --accent: #f0703f;
+    --accent-hover: #f58a5e;
+    --on-accent: #0e1813;
+    --shadow: 0 0 0;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sage: var(--sage);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-forest: var(--forest);
+  --color-on-forest: var(--on-forest);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --font-sans: var(--font-outfit);
+  --font-mono: var(--font-jetbrains);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
