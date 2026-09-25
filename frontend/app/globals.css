@@ -96,6 +96,16 @@ body {
   background: var(--forest);
   outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
 }
+@media (prefers-reduced-motion: no-preference) {
+  .leaflet-marker-icon.fr-moving {
+    transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .fr-refit .leaflet-marker-icon.fr-moving,
+  .leaflet-zoom-anim .leaflet-marker-icon.fr-moving,
+  .leaflet-dragging .leaflet-marker-icon.fr-moving {
+    transition: none;
+  }
+}
 .fr-route {
   stroke: var(--accent);
   stroke-opacity: 0.75;

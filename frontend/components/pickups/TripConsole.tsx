@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircleIcon, NavigationArrowIcon, PhoneIcon, StopCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, NavigationArrowIcon, PathIcon, PhoneIcon, StopCircleIcon } from "@phosphor-icons/react";
 import { ApiError, api } from "@/lib/api";
 import { statusLabel } from "@/lib/format";
 import type { LocationPoint, Pickup, PickupStatus, Tracking } from "@/lib/types";
@@ -11,6 +11,7 @@ import { PointsMap, type MapPoint } from "@/components/map";
 import { FormAlert, primaryButton, secondaryButton } from "@/components/ui/form";
 import { isCollected } from "@/lib/trip";
 import { StatusTimeline } from "./StatusTimeline";
+import { usePickupEvents } from "./usePickupEvents";
 
 const NEXT_ACTION: Partial<Record<PickupStatus, string>> = {
   ARRIVED: "I've arrived at the pickup",
@@ -24,6 +25,9 @@ const MIN_SEND_INTERVAL_MS = 8_000;
 const MIN_MOVE_METERS = 15;
 const HEARTBEAT_MS = 30_000;
 
+const SIM_STEPS = 12;
+const SIM_INTERVAL_MS = 2_500;
+
 function metersBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6_371_000;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
@@ -34,7 +38,7 @@ function metersBetween(a: { lat: number; lng: number }, b: { lat: number; lng: n
 
 type GpsState = "off" | "starting" | "live" | "denied" | "unavailable";
 
-export function TripConsole({ initial }: { initial: Tracking }) {
+export function TripConsole({ initial, demoTools = false }: { initial: Tracking; demoTools?: boolean }) {
   const router = useRouter();
   const [pickup, setPickup] = useState<Pickup>(initial.pickup);
   const [path, setPath] = useState<LocationPoint[]>(initial.path);
@@ -45,6 +49,8 @@ export function TripConsole({ initial }: { initial: Tracking }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const simTimer = useRef<number | null>(null);
   const watchId = useRef<number | null>(null);
   const lastSent = useRef<{ lat: number; lng: number; at: number } | null>(null);
 
@@ -112,6 +118,58 @@ export function TripConsole({ initial }: { initial: Tracking }) {
     return stopWatching;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const stopSimulation = useCallback(() => {
+    if (simTimer.current != null) clearInterval(simTimer.current);
+    simTimer.current = null;
+    setSimulating(false);
+  }, []);
+
+  useEffect(() => stopSimulation, [stopSimulation]);
+
+  // Changes made elsewhere (an admin cancelling, another tab) arrive here too.
+  usePickupEvents(pickup.id, active, {
+    onStatus: (next) => {
+      setPickup(next);
+      if (!next.sharingLocation) {
+        stopWatching();
+        stopSimulation();
+        setGps("off");
+      }
+    },
+  });
+
+  /**
+   * Demo only (NEXT_PUBLIC_DEMO_TOOLS=true): drives the location along a straight route through the real API,
+   * so a laptop demo shows the donor's map moving. Before pickup it heads to the pickup spot; after, away from it.
+   */
+  function simulate() {
+    stopWatching();
+    const collected = isCollected(pickup);
+    const target = collected
+      ? { lat: pickup.pickupLat + 0.016, lng: pickup.pickupLng + 0.018 }
+      : { lat: pickup.pickupLat, lng: pickup.pickupLng };
+    const start =
+      pickup.lastLocation ?? (collected ? { lat: pickup.pickupLat, lng: pickup.pickupLng } : { lat: pickup.pickupLat - 0.012, lng: pickup.pickupLng - 0.01 });
+    let step = 1;
+    setSimulating(true);
+    simTimer.current = window.setInterval(async () => {
+      const t = step / SIM_STEPS;
+      const wobble = Math.sin(t * Math.PI) * 0.0012;
+      const lat = start.lat + (target.lat - start.lat) * t + wobble;
+      const lng = start.lng + (target.lng - start.lng) * t - wobble;
+      step += 1;
+      if (step > SIM_STEPS) stopSimulation();
+      try {
+        const point = await api<LocationPoint>(`/pickups/${pickup.id}/location`, { method: "POST", body: { lat, lng } });
+        setPath((p) => [...p, point]);
+        setPickup((p) => ({ ...p, lastLocation: point }));
+        setLastSentAt(Date.now());
+      } catch {
+        stopSimulation();
+      }
+    }, SIM_INTERVAL_MS);
+  }
+
   async function setSharing(enabled: boolean) {
     setBusy(true);
     setError(null);
@@ -121,6 +179,7 @@ export function TripConsole({ initial }: { initial: Tracking }) {
       if (enabled) startWatching();
       else {
         stopWatching();
+        stopSimulation();
         setGps("off");
       }
     } catch (err) {
@@ -139,6 +198,7 @@ export function TripConsole({ initial }: { initial: Tracking }) {
       setConfirmCancel(false);
       if (!updated.sharingLocation) {
         stopWatching();
+        stopSimulation();
         setGps("off");
       }
       router.refresh();
@@ -213,15 +273,27 @@ export function TripConsole({ initial }: { initial: Tracking }) {
                           ? "Only the donor and admins can see it. It stops automatically on delivery."
                           : "Only the donor and admins can see it."}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setSharing(false)}
-                    disabled={busy}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-forest/80 underline decoration-on-forest/30 underline-offset-4 hover:text-on-forest"
-                  >
-                    <StopCircleIcon size={16} aria-hidden />
-                    Stop sharing
-                  </button>
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setSharing(false)}
+                      disabled={busy}
+                      className="inline-flex w-fit items-center gap-2 text-sm text-on-forest/80 underline decoration-on-forest/30 underline-offset-4 hover:text-on-forest"
+                    >
+                      <StopCircleIcon size={16} aria-hidden />
+                      Stop sharing
+                    </button>
+                    {demoTools && (
+                      <button
+                        type="button"
+                        onClick={simulating ? stopSimulation : simulate}
+                        className="inline-flex w-fit items-center gap-2 rounded-full border border-dashed border-on-forest/40 px-3 py-1 text-xs text-on-forest/80 hover:text-on-forest"
+                      >
+                        <PathIcon size={14} aria-hidden />
+                        {simulating ? "Stop simulation" : "Simulate movement (demo)"}
+                      </button>
+                    )}
+                  </div>
                 </>
               ) : (
                 <>
