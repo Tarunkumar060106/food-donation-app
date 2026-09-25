@@ -38,31 +38,38 @@ export function Field({
   );
 }
 
-export function TextInput({ id, error, ...props }: ComponentProps<"input"> & { id: string; error?: string }) {
+export function TextInput({ id, error, className = "", ...props }: ComponentProps<"input"> & { id: string; error?: string }) {
   return (
     <input
       id={id}
       name={id}
       aria-invalid={error ? true : undefined}
       aria-describedby={error ? `${id}-error` : `${id}-hint`}
-      className={inputClass}
       {...props}
+      className={`${inputClass} ${className}`}
     />
   );
 }
 
-export function Select({ id, error, children, ...props }: ComponentProps<"select"> & { id: string; error?: string }) {
+const pillSelectClass =
+  "rounded-full border border-line bg-surface py-2 pl-4 pr-9 text-sm text-ink transition hover:border-ink/30 focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/20 disabled:opacity-50";
+
+/** Native select with a CSS-drawn chevron (`fr-select` in globals.css). `pill` is the compact toolbar style. */
+export function Select({
+  id,
+  error,
+  children,
+  className = "",
+  variant = "field",
+  ...props
+}: ComponentProps<"select"> & { id: string; error?: string; variant?: "field" | "pill" }) {
   return (
     <select
       id={id}
       name={id}
       aria-invalid={error ? true : undefined}
-      className={`${inputClass} appearance-none bg-[length:16px] bg-[right_0.75rem_center] bg-no-repeat pr-10`}
-      style={{
-        backgroundImage:
-          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%2356665d'%3E%3Cpath d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E\")",
-      }}
       {...props}
+      className={`fr-select ${variant === "pill" ? pillSelectClass : `${inputClass} pr-10`} ${className}`}
     >
       {children}
     </select>

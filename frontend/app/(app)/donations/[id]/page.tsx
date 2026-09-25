@@ -124,7 +124,7 @@ function CollectorSide({ donation: d, session }: { donation: Donation; session: 
   if (d.activePickup?.collector.id === session.userId) {
     return (
       <div className="grid gap-4 rounded-2xl bg-forest p-6 text-on-forest sm:p-8">
-        <p className="text-lg font-medium">You&apos;re collecting this</p>
+        <p className="text-lg font-medium">This is your pickup</p>
         <p className="text-sm text-on-forest/75">Current step: {statusLabel[d.activePickup.status].toLowerCase()}.</p>
         <Link href={`/pickups/${d.activePickup.id}`} className={primaryButton}>
           Open trip
@@ -150,7 +150,7 @@ function ManagerSide({ donation: d, matches }: { donation: Donation; matches: Co
   if (d.activePickup) {
     return (
       <div className="grid gap-4 rounded-2xl bg-forest p-6 text-on-forest sm:p-8">
-        <p className="text-sm text-on-forest/70">Being collected by</p>
+        <p className="text-sm text-on-forest/70">Collector</p>
         <p className="text-2xl font-medium">{d.activePickup.collector.name}</p>
         <p className="text-sm text-on-forest/75">
           {d.activePickup.collector.organizationName ?? roleLabel[d.activePickup.collector.role]}, currently{" "}

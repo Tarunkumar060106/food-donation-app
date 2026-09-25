@@ -81,7 +81,7 @@ async function DonorDashboard({ firstName, summary }: { firstName: string; summa
                     <p className="truncate font-medium">{d.foodName}</p>
                     <p className="text-sm text-muted">
                       {d.servings} servings, {categoryLabel[d.category].toLowerCase()}
-                      {d.activePickup && `, ${d.activePickup.collector.name} is collecting`}
+                      {d.activePickup && `, ${d.activePickup.collector.name} (${statusLabel[d.activePickup.status].toLowerCase()})`}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
