@@ -25,7 +25,7 @@ export function Closing() {
             might be around the corner.
           </p>
           <Link
-            href="/signin"
+            href="/signup"
             className="group mt-10 inline-flex items-center gap-2 rounded-full bg-[#f0703f] px-6 py-3 font-medium text-[#0e1813] transition hover:bg-[#f58a5e] active:scale-[0.98]"
           >
             Get started

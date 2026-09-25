@@ -31,12 +31,17 @@ export function Nav() {
             </li>
           ))}
         </ul>
-        <Link
-          href="/signin"
-          className="rounded-full bg-accent px-5 py-2 text-[15px] font-medium text-on-accent transition hover:bg-accent-hover active:scale-[0.98]"
-        >
-          Get started
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/signin" className="text-[15px] text-muted transition-colors hover:text-ink">
+            Sign in
+          </Link>
+          <Link
+            href="/signup"
+            className="rounded-full bg-accent px-5 py-2 text-[15px] font-medium text-on-accent transition hover:bg-accent-hover active:scale-[0.98]"
+          >
+            Get started
+          </Link>
+        </div>
       </nav>
     </header>
   );
