@@ -52,13 +52,14 @@ This is a **Vision2Web Full Stack Web Development Hackathon** submission (2-day 
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Next.js + TypeScript + Tailwind CSS + shadcn/ui |
-| **Backend** | FastAPI (Python) + REST API |
-| **Database** | Supabase (PostgreSQL) + RLS |
-| **Authentication** | Supabase Auth |
-| **Realtime** | Supabase Realtime (WebSockets) |
+| **Frontend** | Next.js 16 + TypeScript + Tailwind CSS v4 + Motion |
+| **Backend** | Spring Boot 4.1 (Java 21) REST API, Maven |
+| **Persistence** | Spring Data JPA (Hibernate) + Flyway migrations |
+| **Database** | PostgreSQL hosted on Supabase (used as plain Postgres) |
+| **Authentication** | Spring Security + JWT (HS256), BCrypt passwords, role-based access |
+| **Realtime** | Server-Sent Events from Spring for live pickup tracking |
+| **API docs** | springdoc-openapi (Swagger UI) |
 | **Mapping** | Leaflet + OpenStreetMap |
-| **Storage** | Supabase Storage (donation images) |
 
 ---
 
@@ -72,17 +73,22 @@ food-donation-app/
 │   ├── lib/
 │   ├── public/
 │   └── package.json
-├── backend/                # FastAPI
-│   ├── app/
-│   ├── models/
-│   ├── routes/
-│   ├── requirements.txt
-│   └── main.py
-├── database/               # PostgreSQL schemas
-│   └── schema.sql
+├── backend/                # Spring Boot (Java 21, Maven)
+│   ├── src/main/java/com/foodrescue/
+│   │   ├── controller/     # REST endpoints
+│   │   ├── service/        # business rules, matching, state machine
+│   │   ├── repository/     # Spring Data JPA
+│   │   ├── entity/         # JPA entities + enums
+│   │   ├── dto/            # request/response records
+│   │   ├── security/       # JWT issuing, current user
+│   │   ├── config/         # security, CORS, OpenAPI
+│   │   ├── exception/      # ProblemDetail error handling
+│   │   └── seed/           # demo data
+│   ├── src/main/resources/db/migration/   # Flyway SQL
+│   ├── .env.example
+│   └── pom.xml
 ├── .gitignore
-├── README.md
-└── .env.example
+└── README.md
 
 ```
 
@@ -90,13 +96,20 @@ food-donation-app/
 
 ## 🚀 Getting Started (Setup Checklist)
 
-### Backend Setup
+### Backend Setup (Java 21 + Maven)
+1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase **Session pooler** connection details and a `JWT_SECRET` (32+ characters). `.env` is git-ignored.
+2. Run:
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+mvn spring-boot:run
 ```
+Flyway creates the schema on first start and demo data is seeded automatically.
+
+- API: http://localhost:8080/api
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- Tests: `mvn test`
+
+**Demo accounts** (password `demo12345`): `donor@foodrescue.dev`, `volunteer@foodrescue.dev`, `ngo@foodrescue.dev`, `admin@foodrescue.dev`
 
 ### Frontend Setup
 ```bash
@@ -105,19 +118,12 @@ npm install
 npm run dev
 ```
 
-### Environment Variables
-Create `.env.local` in the frontend directory:
-```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
 ---
 
 ## 📅 Development Timeline
 
 ### Day 1
-- ✅ Backend foundation (FastAPI, Supabase schema)
+- ✅ Backend foundation (Spring Boot, JPA, Flyway schema)
 - ✅ Authentication & roles
 - ✅ Donation CRUD & search endpoints
 - ✅ Frontend: Sign in, create donation form, donation discovery
