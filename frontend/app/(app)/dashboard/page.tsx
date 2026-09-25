@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon, MapPinIcon, PlusIcon } from "@phosphor-icons/react/ssr";
-import { EmptyState, SectionHeader, StatTile, StatusBadge, TimeLeft } from "@/components/app/bits";
+import { EmptyState, SectionHeader, StatTile, StatusBadge, TimeLeft, isWaiting } from "@/components/app/bits";
 import { primaryButton } from "@/components/ui/form";
 import { categoryLabel, greeting, numberFormat, statusLabel, timeAgo } from "@/lib/format";
 import { serverApi } from "@/lib/server-api";
@@ -85,7 +85,7 @@ async function DonorDashboard({ firstName, summary }: { firstName: string; summa
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {d.urgency && <TimeLeft minutes={d.minutesToExpiry} urgency={d.urgency} />}
+                    {isWaiting(d) && <TimeLeft minutes={d.minutesToExpiry} urgency={d.urgency} />}
                     <StatusBadge status={d.status} />
                   </div>
                 </Link>

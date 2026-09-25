@@ -1,3 +1,4 @@
+import { istHour } from "./time";
 import type { DonationStatus, FoodCategory, PickupStatus, Role } from "./types";
 
 export const roleLabel: Record<Role, string> = {
@@ -51,7 +52,7 @@ export function timeAgo(iso: string, now = Date.now()) {
 }
 
 export function greeting(date = new Date()) {
-  const h = date.getHours();
+  const h = istHour(date);
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 

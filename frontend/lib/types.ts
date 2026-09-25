@@ -40,7 +40,9 @@ export type MatchResult = {
   reason: string;
 };
 
-export type PickupSummary = { id: string; status: PickupStatus; collector: Person; claimedAt: string };
+export type CollectorMatch = { collector: Person; capacityServings: number | null; match: MatchResult };
+
+export type PickupSummary ={ id: string; status: PickupStatus; collector: Person; claimedAt: string };
 
 export type Donation = {
   id: string;

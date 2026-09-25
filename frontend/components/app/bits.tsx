@@ -23,6 +23,11 @@ export function StatusBadge({ status }: { status: DonationStatus | PickupStatus 
   );
 }
 
+/** Expiry only matters while food is still waiting to be collected. */
+export function isWaiting(d: { status: DonationStatus }) {
+  return d.status === "AVAILABLE" || d.status === "CLAIMED";
+}
+
 export function TimeLeft({ minutes, urgency }: { minutes: number; urgency: Urgency | null }) {
   const tone = urgency === "CRITICAL" ? "text-accent" : urgency === "HIGH" ? "text-ink" : "text-muted";
   return <span className={`font-mono text-sm tabular-nums ${tone}`}>{minutesLabel(minutes)}</span>;
