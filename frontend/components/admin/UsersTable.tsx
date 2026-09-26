@@ -94,6 +94,7 @@ export function UsersTable({ users }: { users: User[] }) {
                   <td className="px-5 py-3.5 font-mono tabular-nums">
                     {u.capacityServings ?? <span className="text-muted">-</span>}
                     {u.role !== "DONOR" && u.role !== "ADMIN" && !u.acceptsNonVeg && <p className="font-sans text-xs text-muted">Veg only</p>}
+                    {u.hasCoolBox && <p className="font-sans text-xs text-muted">Cool box</p>}
                   </td>
                   <td className="px-5 py-3.5 text-muted">{u.latitude != null ? "Saved" : "Not set"}</td>
                   <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-muted">{formatDateTime(u.createdAt)}</td>

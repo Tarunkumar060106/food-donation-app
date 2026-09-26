@@ -10,6 +10,7 @@ import com.foodrescue.security.CurrentUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
@@ -21,6 +22,9 @@ public class DonationService {
     static final Set<PickupStatus> ACTIVE_PICKUP = EnumSet.of(
             PickupStatus.CLAIMED, PickupStatus.ARRIVED, PickupStatus.PICKED_UP, PickupStatus.IN_TRANSIT);
     private static final int MAX_MATCHES = 10;
+    /** Tolerates small differences between the donor's device clock and the server. */
+    private static final Duration PREPARED_CLOCK_SLACK = Duration.ofMinutes(5);
+    private static final Duration MAX_PREPARED_AGE = Duration.ofDays(2);
 
     public enum Sort { EXPIRY, DISTANCE, MATCH, NEWEST }
 
@@ -43,14 +47,28 @@ public class DonationService {
 
     @Transactional
     public DonationResponse create(CurrentUser caller, CreateDonationRequest req) {
+        Instant now = Instant.now();
         if (req.pickupDeadline().isAfter(req.expiryTime())) {
             throw ApiException.badRequest("The pickup deadline must be on or before the expiry time.");
         }
+        if (req.preparedAt() != null) {
+            if (req.preparedAt().isAfter(now.plus(PREPARED_CLOCK_SLACK))) {
+                throw ApiException.badRequest("The cooking time can't be in the future.");
+            }
+            if (!req.preparedAt().isBefore(req.expiryTime())) {
+                throw ApiException.badRequest("The food must be cooked before it expires.");
+            }
+            if (req.preparedAt().isBefore(now.minus(MAX_PREPARED_AGE))) {
+                throw ApiException.badRequest("Food cooked more than 2 days ago can't be donated.");
+            }
+        }
         User donor = users.getReferenceById(caller.id());
-        Donation d = donations.save(new Donation(donor, req.foodName().trim(), req.category(), req.dietary(),
+        Donation d = new Donation(donor, req.foodName().trim(), req.category(), req.dietary(),
                 req.quantityDescription(), req.servings(), req.description(), req.imageUrl(),
-                req.pickupAddress().trim(), req.pickupLat(), req.pickupLng(), req.pickupDeadline(), req.expiryTime()));
-        return Mapper.donation(d, Instant.now(), null, null, null);
+                req.pickupAddress().trim(), req.pickupLat(), req.pickupLng(), req.pickupDeadline(), req.expiryTime());
+        d.setPreparedAt(req.preparedAt());
+        d.setRequiresRefrigeration(Boolean.TRUE.equals(req.requiresRefrigeration()));
+        return Mapper.donation(donations.save(d), now, null, null, null);
     }
 
     @Transactional(readOnly = true)

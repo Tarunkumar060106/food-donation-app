@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircleIcon, NavigationArrowIcon, PathIcon, PhoneIcon, StopCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, NavigationArrowIcon, PathIcon, PhoneIcon, SnowflakeIcon, StopCircleIcon } from "@phosphor-icons/react";
 import { ApiError, api } from "@/lib/api";
 import { statusLabel } from "@/lib/format";
 import type { LocationPoint, Pickup, PickupStatus, Tracking } from "@/lib/types";
@@ -349,6 +349,12 @@ export function TripConsole({ initial, demoTools = false }: { initial: Tracking;
             <p className="mt-1 font-medium">{pickup.donor.name}</p>
             <p className="text-sm text-muted">{pickup.pickupAddress}</p>
           </div>
+          {pickup.requiresRefrigeration && (
+            <p className="flex items-start gap-2 rounded-[10px] bg-forest/10 p-3 text-sm text-ink">
+              <SnowflakeIcon size={16} weight="bold" className="mt-0.5 shrink-0 text-forest dark:text-[#8fbf9f]" aria-hidden />
+              Keep this food cold. Use a cool box or insulated bag, and go straight to the drop-off.
+            </p>
+          )}
           <div className="flex flex-wrap gap-3">
             {pickup.donor.phone && (
               <a href={`tel:${pickup.donor.phone.replace(/\s/g, "")}`} className={`${secondaryButton} px-4 py-2 text-sm`}>

@@ -36,6 +36,7 @@ export function SignUpForm() {
     phone: "",
     capacityServings: "",
     acceptsNonVeg: true,
+    hasCoolBox: false,
     organizationName: "",
     organizationType: ORG_TYPES[0],
     address: "",
@@ -82,6 +83,7 @@ export function SignUpForm() {
       ...(isCollector && {
         capacityServings: form.capacityServings ? Number(form.capacityServings) : null,
         acceptsNonVeg: form.acceptsNonVeg,
+        hasCoolBox: form.hasCoolBox,
       }),
       ...(role === "NGO" && {
         organizationName: form.organizationName,
@@ -210,6 +212,15 @@ export function SignUpForm() {
               className="size-4 rounded border-line accent-[var(--forest)]"
             />
             {role === "NGO" ? "We can accept non-vegetarian food" : "I can carry non-vegetarian food"}
+          </label>
+          <label className="flex items-center gap-3 text-[15px]">
+            <input
+              type="checkbox"
+              checked={form.hasCoolBox}
+              onChange={set("hasCoolBox")}
+              className="size-4 rounded border-line accent-[var(--forest)]"
+            />
+            {role === "NGO" ? "We have a fridge or cold storage for refrigerated food" : "I have a cool box for refrigerated food"}
           </label>
         </div>
       )}

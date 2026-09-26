@@ -95,6 +95,12 @@ public class DemoDataSeeder implements ApplicationRunner {
                 new Organization("Chennai Community Food Bank", "Food bank", "Egmore, Chennai", "+91 44 2819 0001"));
         User shelterLead = account("Joseph Daniel", "shelter@foodrescue.dev", hash, Role.NGO, "+91 98400 44002", 13.0012, 80.2565, 80, false,
                 new Organization("Hope Shelter", "Shelter", "Adyar, Chennai", "+91 44 2441 0002"));
+        // Who can carry refrigerated food. Set every time so a reset restores the demo story.
+        arjun.setHasCoolBox(true);
+        rahul.setHasCoolBox(true);
+        ngo.setHasCoolBox(true);
+        divya.setHasCoolBox(false);
+        shelterLead.setHasCoolBox(false);
         return new Cast(restaurant, hostel, household, arjun, divya, rahul, ngo, shelterLead);
     }
 
@@ -104,8 +110,9 @@ public class DemoDataSeeder implements ApplicationRunner {
                 "Freshly cooked for a cancelled catering order. Packed in foil trays.", now, 30, 42);
         donation(c.hostel(), "Chapati and dal", FoodCategory.COOKED_MEAL, Dietary.VEG, "2 containers", 40,
                 "Dinner surplus from the hostel mess.", now, 90, 150);
-        donation(c.restaurant(), "Chicken curry and rice", FoodCategory.COOKED_MEAL, Dietary.NON_VEG, "4 containers", 35,
+        Donation curry = donation(c.restaurant(), "Chicken curry and rice", FoodCategory.COOKED_MEAL, Dietary.NON_VEG, "4 containers", 35,
                 "Lunch buffet surplus, kept refrigerated.", now, 60, 95);
+        curry.setRequiresRefrigeration(true);
         donation(c.household(), "Assorted bread and buns", FoodCategory.BAKERY, Dietary.VEG, "1 carton", 25,
                 "Unopened packs from a family event.", now, 300, 600);
         donation(c.hostel(), "Fresh fruit crates", FoodCategory.PRODUCE, Dietary.VEG, "3 crates", 60,
@@ -153,9 +160,13 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     private Donation donation(User donor, String food, FoodCategory category, Dietary dietary, String quantity,
                               int servings, String description, Instant from, int deadlineMinutes, int expiryMinutes) {
-        return donations.save(new Donation(donor, food, category, dietary, quantity, servings, description, null,
+        Donation d = new Donation(donor, food, category, dietary, quantity, servings, description, null,
                 addressFor(donor), donor.getLatitude(), donor.getLongitude(),
-                from.plus(Duration.ofMinutes(deadlineMinutes)), from.plus(Duration.ofMinutes(expiryMinutes))));
+                from.plus(Duration.ofMinutes(deadlineMinutes)), from.plus(Duration.ofMinutes(expiryMinutes)));
+        if (category == FoodCategory.COOKED_MEAL || category == FoodCategory.BAKERY) {
+            d.setPreparedAt(from.minus(Duration.ofMinutes(category == FoodCategory.BAKERY ? 180 : 75)));
+        }
+        return donations.save(d);
     }
 
     private void delivered(User donor, User collector, String food, int servings, Instant now, int hoursAgo) {

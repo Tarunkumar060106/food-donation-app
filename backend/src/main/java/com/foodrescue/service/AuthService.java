@@ -53,6 +53,7 @@ public class AuthService {
         if (req.role().isCollector()) {
             user.setCapacityServings(req.capacityServings());
             user.setAcceptsNonVeg(req.acceptsNonVeg() == null || req.acceptsNonVeg());
+            user.setHasCoolBox(Boolean.TRUE.equals(req.hasCoolBox()));
         }
         if (req.role() == Role.NGO) {
             if (req.organizationName() == null || req.organizationName().isBlank()) {

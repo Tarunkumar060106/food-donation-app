@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { EmptyState, TimeLeft } from "@/components/app/bits";
 import { DiscoverFilters, type DiscoverParams } from "@/components/discover/DiscoverFilters";
+import { FoodSafetyBadges } from "@/components/donations/FoodSafetyBadges";
 import { MatchBreakdown } from "@/components/donations/MatchBreakdown";
 import { PointsMap, type MapPoint } from "@/components/map";
 import { categoryLabel } from "@/lib/format";
@@ -111,6 +112,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/discove
                     </div>
                   )}
                 </div>
+                <FoodSafetyBadges preparedAt={d.preparedAt} requiresRefrigeration={d.requiresRefrigeration} />
                 {d.match && <MatchBreakdown match={d.match} compact />}
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3">
                   <TimeLeft minutes={d.minutesToExpiry} urgency={d.urgency} />

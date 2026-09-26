@@ -56,6 +56,12 @@ public class Donation {
     @Column(name = "expiry_time", nullable = false)
     private Instant expiryTime;
 
+    @Column(name = "prepared_at")
+    private Instant preparedAt;
+
+    @Column(name = "requires_refrigeration", nullable = false)
+    private boolean requiresRefrigeration;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private DonationStatus status = DonationStatus.AVAILABLE;
@@ -125,5 +131,10 @@ public class Donation {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
+    public Instant getPreparedAt() { return preparedAt; }
+    public boolean isRequiresRefrigeration() { return requiresRefrigeration; }
+
     public void setStatus(DonationStatus status) { this.status = status; }
+    public void setPreparedAt(Instant preparedAt) { this.preparedAt = preparedAt; }
+    public void setRequiresRefrigeration(boolean requiresRefrigeration) { this.requiresRefrigeration = requiresRefrigeration; }
 }

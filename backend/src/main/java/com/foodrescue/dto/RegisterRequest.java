@@ -13,6 +13,7 @@ public record RegisterRequest(
         @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,
         @Positive @Max(10000) Integer capacityServings,
         Boolean acceptsNonVeg,
+        Boolean hasCoolBox,
         @Size(max = 120) String organizationName,
         @Size(max = 40) String organizationType,
         @Size(max = 255) String address
