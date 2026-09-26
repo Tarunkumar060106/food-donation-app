@@ -4,7 +4,9 @@ import com.foodrescue.dto.DashboardSummary;
 import com.foodrescue.dto.NotificationResponse;
 import com.foodrescue.dto.NotificationsResponse;
 import com.foodrescue.dto.UserResponse;
+import com.foodrescue.exception.ApiException;
 import com.foodrescue.security.CurrentUser;
+import com.foodrescue.seed.DemoDataSeeder;
 import com.foodrescue.service.DashboardService;
 import com.foodrescue.service.NotificationService;
 import com.foodrescue.service.UserService;
@@ -27,11 +29,14 @@ public class DashboardController {
     private final DashboardService dashboard;
     private final NotificationService notifications;
     private final UserService users;
+    private final DemoDataSeeder seeder;
 
-    public DashboardController(DashboardService dashboard, NotificationService notifications, UserService users) {
+    public DashboardController(DashboardService dashboard, NotificationService notifications, UserService users,
+                               DemoDataSeeder seeder) {
         this.dashboard = dashboard;
         this.notifications = notifications;
         this.users = users;
+        this.seeder = seeder;
     }
 
     @GetMapping("/dashboard/summary")
@@ -59,5 +64,17 @@ public class DashboardController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> allUsers() {
         return users.listAll();
+    }
+
+    @PostMapping("/admin/demo/reset")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Reset demo activity",
+            description = "Deletes all donations, pickups, locations and notifications and re-creates the demo activity relative to now. "
+                    + "Accounts are kept. Only available while SEED_DEMO_DATA=true.")
+    public DemoDataSeeder.ResetResult resetDemo() {
+        if (!seeder.isEnabled()) {
+            throw ApiException.forbidden("Demo reset is turned off on this server.");
+        }
+        return seeder.reset();
     }
 }

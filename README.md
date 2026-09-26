@@ -1,213 +1,163 @@
-# FoodRescue 🍽️
+# FoodRescue
 
-**Intelligent Surplus Food Coordination & Live Delivery Tracking**
+**Surplus food, rescued in minutes.**
 
-A full-stack web platform that connects surplus food donors (restaurants, hostels, households, event organizers) with nearby volunteers and NGOs to rescue edible food before it expires.
+FoodRescue connects surplus food from restaurants, hostels, households and events with nearby volunteers and NGOs. Donors post what's left, collectors are ranked by an explainable match score, and every pickup is tracked live from claim to delivery.
 
----
-
-## 📖 Project Context
-
-This is a **Vision2Web Full Stack Web Development Hackathon** submission (2-day build).
-- **Track:** Theme 2 — Community & Social Impact
-- **Challenge:** Food Donation Coordinator
-- **Status:** 🚧 In Progress
+Built for the **Vision2Web Full Stack Web Development Hackathon** (Theme 2, Community & Social Impact: Food Donation Coordinator).
 
 ---
 
-## 🎯 Core Features (MVP)
+## Features
 
-### Donor Workflow
-- Create surplus food donations with quantity, location, pickup deadline, and expiry time
-- View donation status and assigned volunteer
-- Track active pickups in real-time
-- See donation counts and impact metrics
+**Donors**
+- Post food in under a minute: category, veg/non-veg, servings, expiry and collect-by time (IST), pickup spot on a map
+- See the top collectors for each donation, ranked with a score breakdown and a plain-language reason
+- Follow the pickup live on a map, with a status timeline and notifications
 
-### Volunteer Workflow
-- Discover nearby donations sorted by urgency (expiry time)
-- Search and filter by distance, category, expiry status
-- Claim pickups with intelligent matching recommendations
-- Share live location during active delivery
-- Update status: Arrived → Picked Up → In Transit → Delivered
+**Volunteers and NGOs**
+- Discover feed sorted by urgency, match or distance, with filters and a list/map view
+- Match score on every donation (urgency 40, distance 30, capacity 20, food fit 10)
+- Claim (atomic: two simultaneous claims never both succeed), then start the trip to share location with consent
+- Step through Arrived, Picked up, In transit, Delivered; release a pickup if plans change
 
-### Admin Workflow
-- Monitor all donations and active pickups
-- View platform impact metrics (rescued servings, completed deliveries, expired donations)
-- Intervene in exceptions
-- Review user activity
+**Admins**
+- Operations: live map of all active pickups, stalled-pickup alerts, food expiring within 3 hours, cancel or take down
+- Users directory with role filter and search
+- Platform impact dashboard
 
-### Key Capabilities
-- ✅ Donation lifecycle tracking (8 states: AVAILABLE, MATCHED, CLAIMED, PICKED_UP, IN_TRANSIT, DELIVERED, EXPIRED, CANCELLED)
-- ✅ Expiry-aware urgency filtering
-- ✅ Smart matching engine (distance + urgency + capacity + food compatibility)
-- ✅ Live tracking map with volunteer geolocation
-- ✅ Realtime status updates
-- ✅ Role-based access control
-- ✅ Activity dashboard with impact metrics
-- ✅ Responsive UI (desktop & mobile)
+**Everyone:** role-aware dashboards, notifications bell, responsive down to phone width, light and dark mode.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech stack
 
 | Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 16 + TypeScript + Tailwind CSS v4 + Motion |
-| **Backend** | Spring Boot 4.1 (Java 21) REST API, Maven |
-| **Persistence** | Spring Data JPA (Hibernate) + Flyway migrations |
-| **Database** | PostgreSQL hosted on Supabase (used as plain Postgres) |
-| **Authentication** | Spring Security + JWT (HS256), BCrypt passwords, role-based access |
-| **Realtime** | Server-Sent Events from Spring for live pickup tracking |
-| **API docs** | springdoc-openapi (Swagger UI) |
-| **Mapping** | Leaflet + OpenStreetMap |
+|---|---|
+| Frontend | Next.js 16, TypeScript, Tailwind CSS v4, Motion, Leaflet + OpenStreetMap |
+| Backend | Spring Boot 4.1, Java 21, Maven |
+| Persistence | Spring Data JPA (Hibernate), Flyway migrations |
+| Database | PostgreSQL (hosted on Supabase, used as plain Postgres) |
+| Auth | Spring Security, JWT (HS256), BCrypt; the JWT lives in an httpOnly cookie set by Next.js |
+| Realtime | Server-Sent Events from Spring, relayed through the Next.js proxy |
+| API docs | springdoc-openapi (Swagger UI) |
+
+### How a request flows
+
+```
+Browser ──(httpOnly cookie)──> Next.js  /api/session/*   login/signup/logout, sets the cookie
+                                        /api/backend/*   adds "Authorization: Bearer", forwards to Spring,
+                                                         streams SSE, blocks cross-site writes
+Next.js ─────────────────────> Spring Boot /api/*  ────> PostgreSQL
+```
+
+The token never reaches browser JavaScript. Spring checks the token and the user's role on every call.
 
 ---
 
-## 📁 Project Structure
+## Project structure
 
 ```
 food-donation-app/
-├── frontend/               # Next.js + TypeScript
-│   ├── app/
-│   ├── components/
-│   ├── lib/
-│   ├── public/
-│   └── package.json
-├── backend/                # Spring Boot (Java 21, Maven)
+├── frontend/                     Next.js app
+│   ├── app/                      routes: landing, signin, signup, (app)/dashboard, donations, discover, pickups, admin
+│   ├── app/api/                  session routes and the backend proxy
+│   ├── components/               landing, auth, app shell, map, donations, pickups, admin
+│   ├── lib/                      API client, session, IST time helpers, types
+│   └── proxy.ts                  redirects signed-out visitors
+├── backend/                      Spring Boot API
 │   ├── src/main/java/com/foodrescue/
-│   │   ├── controller/     # REST endpoints
-│   │   ├── service/        # business rules, matching, state machine
-│   │   ├── repository/     # Spring Data JPA
-│   │   ├── entity/         # JPA entities + enums
-│   │   ├── dto/            # request/response records
-│   │   ├── security/       # JWT issuing, current user
-│   │   ├── config/         # security, CORS, OpenAPI
-│   │   ├── exception/      # ProblemDetail error handling
-│   │   └── seed/           # demo data
-│   ├── src/main/resources/db/migration/   # Flyway SQL
-│   ├── .env.example
-│   └── pom.xml
-├── .gitignore
+│   │   ├── controller/           REST endpoints
+│   │   ├── service/              matching, pickup state machine, expiry job, SSE, notifications
+│   │   ├── repository/           Spring Data JPA (atomic claim query lives here)
+│   │   ├── entity/               JPA entities and enums
+│   │   ├── dto/                  request/response records with Bean Validation
+│   │   ├── security/ config/     JWT, Spring Security, CORS, OpenAPI
+│   │   ├── exception/            ProblemDetail error responses
+│   │   └── seed/                 demo data and reset
+│   └── src/main/resources/db/migration/   Flyway SQL
 └── README.md
-
 ```
 
 ---
 
-## 🚀 Getting Started (Setup Checklist)
+## Running locally
 
-### Backend Setup (Java 21 + Maven)
-1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase **Session pooler** connection details and a `JWT_SECRET` (32+ characters). `.env` is git-ignored.
-2. Run:
+**Backend** (Java 21 + Maven)
+
+1. Copy `backend/.env.example` to `backend/.env` and fill in the database connection (Supabase **Session pooler**, or a local Postgres) and a `JWT_SECRET` of 32+ characters.
+2. Start it:
+
 ```bash
 cd backend
 mvn spring-boot:run
 ```
-Flyway creates the schema on first start and demo data is seeded automatically.
+
+Flyway creates the schema on first start and demo data is seeded into an empty database.
 
 - API: http://localhost:8080/api
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - Tests: `mvn test`
 
-**Demo accounts** (password `demo12345`): `donor@foodrescue.dev`, `volunteer@foodrescue.dev`, `ngo@foodrescue.dev`, `admin@foodrescue.dev`
+**Frontend**
 
-### Frontend Setup
+1. Copy `frontend/.env.example` to `frontend/.env.local`. Set `NEXT_PUBLIC_DEMO_TOOLS=true` for demos.
+2. Start it:
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
----
+Open http://localhost:3000.
 
-## 📅 Development Timeline
+**Demo accounts** (password `demo12345`)
 
-### Day 1
-- ✅ Backend foundation (Spring Boot, JPA, Flyway schema)
-- ✅ Authentication & roles
-- ✅ Donation CRUD & search endpoints
-- ✅ Frontend: Sign in, create donation form, donation discovery
+| Role | Email |
+|---|---|
+| Donor | `donor@foodrescue.dev` |
+| Volunteer | `volunteer@foodrescue.dev` |
+| NGO | `ngo@foodrescue.dev` |
+| Admin | `admin@foodrescue.dev` |
 
-### Day 2
-- ✅ Status updates & pickup workflows
-- ✅ Live tracking map & geolocation
-- ✅ Dashboards (donor, volunteer, admin)
-- ✅ Realtime updates
-- ✅ Testing & demo data
-- ✅ Responsive design polish
+The sign-in page has one-click buttons for each.
 
 ---
 
-## 💾 Git Workflow
+## Demo
 
-⚠️ **Important:** All changes are staged locally. You will push manually to remote.
+**Before presenting:** demo donations expire in real time. Sign in as admin, open **Operations**, and use **Reset demo data** (needs `NEXT_PUBLIC_DEMO_TOOLS=true` on the frontend and `SEED_DEMO_DATA=true` on the backend). Accounts are kept.
 
-**Never push without approval from Tarun.**
-
-To push when ready:
-```bash
-git push origin main
-```
-
----
-
-## 📊 Database Schema (Quick Reference)
-
-- `users` — Donors, volunteers, admins
-- `donations` — Surplus food postings
-- `pickup_requests` — Pickup claims and status
-- `location_updates` — Live volunteer locations
-- `organizations` — NGOs and collection organizations
-- `notifications` — User notifications
+**Suggested flow**
+1. As the donor, post "80 vegetarian meals" expiring in 1 hour. Show the ranked matches and the reason text.
+2. As the volunteer, open Discover: it shows up as urgent, with the match score and breakdown.
+3. Claim it. Try claiming from a second volunteer: the second one is refused.
+4. Start the trip. On a laptop, use **Simulate movement (demo)**; on a phone, real GPS needs HTTPS.
+5. In a second window as the donor, open the pickup: the marker moves live.
+6. Step through Arrived, Picked up, In transit, Delivered. The donor's page updates on its own.
+7. Show the dashboard servings go up, and the admin Operations page.
 
 ---
 
-## 🎬 Demo Flow
+## Design decisions worth explaining
 
-1. Create donation: "80 vegetarian meals, pickup 6pm, expires 7pm"
-2. Show HIGH URGENCY in discovery feed
-3. Display matching recommendations (94% match)
-4. Volunteer claims donation
-5. Start live tracking → location updates on map
-6. Update status through pickup workflow
-7. Dashboard shows +80 rescued servings
-8. Explain expiry urgency algorithm
-
----
-
-## 📋 Evaluation Criteria (Vision2Web)
-
-- ✅ Problem understanding and completeness
-- ✅ Frontend usability and responsive design
-- ✅ Backend/API design and database integration
-- ✅ Functional correctness and validation
-- ✅ Innovation and meaningful use of theme
-- ✅ Code quality, security awareness, error handling
-- ✅ Demo quality and technical explanations
+- **Atomic claim:** a single conditional `UPDATE ... WHERE status = 'AVAILABLE' AND expiry_time > now()`, plus a unique partial index on active pickups as a backstop.
+- **State machine:** allowed pickup transitions live in the `PickupStatus` enum. Invalid jumps return 422 with a readable message.
+- **Expiry:** reads treat uncollected food past expiry as expired immediately; a scheduled job persists it every minute.
+- **Explainable matching:** fixed weights and a reason string, unit-tested.
+- **Privacy:** location sharing needs an explicit tap, stops on delivery, and is only visible to the donor, the collector and admins. Phone numbers are only shown to people on the same pickup.
+- **Supabase lock-down:** Row Level Security is enabled with no policies, so Supabase's public Data API can't read the tables; only the Spring app (table owner) can.
+- **Times:** stored and exchanged in UTC; shown and entered in IST.
 
 ---
 
-## 🤝 Team Roles
+## Database
 
-| Workstream | Responsibilities |
-|-----------|-----------------|
-| **Frontend** | Dashboards, forms, discovery, donation details, tracking map, responsive UX |
-| **Backend** | APIs, validation, state machine, matching logic, authorization |
-| **Database/Realtime** | Supabase schema, RLS, realtime channels, seed data |
-| **Integration/QA** | Maps, end-to-end flow, demo data, edge cases, deployment |
+`users`, `organizations`, `donations`, `pickups`, `location_updates`, `notifications`. The schema is in `backend/src/main/resources/db/migration/`.
 
 ---
 
-## 📝 License
+## Git workflow
 
-For hackathon submission purposes.
-
----
-
-## 👤 Author
-
-Built during Vision2Web Hackathon 2026.
-
----
-
-**Last Updated:** September 25, 2026 | **Status:** In Progress 🚧
+Changes are committed locally and pushed manually by Tarun. Nothing is pushed automatically.

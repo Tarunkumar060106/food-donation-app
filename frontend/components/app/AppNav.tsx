@@ -6,6 +6,7 @@ import { useState } from "react";
 import { BowlFoodIcon, SignOutIcon } from "@phosphor-icons/react";
 import { session } from "@/lib/api";
 import { roleLabel } from "@/lib/format";
+import { NotificationBell, type NotificationFeed } from "./NotificationBell";
 import type { Role } from "@/lib/types";
 
 const NAV: Record<Role, { href: string; label: string }[]> = {
@@ -31,7 +32,7 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
   ],
 };
 
-export function AppNav({ name, role }: { name: string; role: Role }) {
+export function AppNav({ name, role, notifications }: { name: string; role: Role; notifications: NotificationFeed | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
@@ -75,6 +76,7 @@ export function AppNav({ name, role }: { name: string; role: Role }) {
           {links}
         </nav>
         <div className="flex items-center gap-3">
+          <NotificationBell initial={notifications} />
           <div className="hidden text-right leading-tight sm:block">
             <p className="text-sm font-medium">{name}</p>
             <p className="text-xs text-muted">{roleLabel[role]}</p>
