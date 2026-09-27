@@ -75,7 +75,14 @@ export default async function MyDonationsPage({ searchParams }: PageProps<"/dona
             <li key={d.id}>
               <Link href={`/donations/${d.id}`} className="grid gap-3 px-5 py-4 transition hover:bg-sage/50 sm:grid-cols-12 sm:items-center">
                 <div className="min-w-0 sm:col-span-6">
-                  <p className="truncate font-medium">{d.foodName}</p>
+                  <p className="flex items-center gap-2 truncate font-medium">
+                    {d.foodName}
+                    {d.requiresRefrigeration && (
+                      <span className="shrink-0 rounded-full bg-forest/10 px-2 py-0.5 text-xs font-medium text-forest dark:text-[#8fbf9f]">
+                        Refrigerate
+                      </span>
+                    )}
+                  </p>
                   <p className="text-sm text-muted">
                     {d.servings} servings, {categoryLabel[d.category].toLowerCase()}, posted {timeAgo(d.createdAt)}
                   </p>

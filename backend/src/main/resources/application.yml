@@ -23,6 +23,8 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Behind Render's HTTPS proxy: trust X-Forwarded-* so generated URLs use https.
+  forward-headers-strategy: framework
   error:
     include-message: never
 
@@ -42,6 +44,9 @@ management:
         include: health
 
 springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html
     operations-sorter: method

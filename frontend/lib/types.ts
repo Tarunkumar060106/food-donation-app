@@ -24,6 +24,7 @@ export type User = {
   longitude: number | null;
   capacityServings: number | null;
   acceptsNonVeg: boolean;
+  hasCoolBox: boolean;
   organization: Organization | null;
   createdAt: string;
 };
@@ -58,6 +59,8 @@ export type Donation = {
   pickupLng: number;
   pickupDeadline: string;
   expiryTime: string;
+  preparedAt: string | null;
+  requiresRefrigeration: boolean;
   status: DonationStatus;
   minutesToExpiry: number;
   urgency: Urgency | null;
@@ -79,6 +82,7 @@ export type Pickup = {
   pickupLat: number;
   pickupLng: number;
   expiryTime: string;
+  requiresRefrigeration: boolean;
   status: PickupStatus;
   nextStatuses: PickupStatus[];
   collector: Contact;

@@ -59,3 +59,8 @@ export function istInputInMinutes(minutes: number) {
   d.setUTCMinutes(Math.ceil(d.getUTCMinutes() / 5) * 5, 0, 0);
   return toIstInput(d);
 }
+
+/** IST input value for the current minute (never in the future, unlike the rounded-up helpers). */
+export function istInputNow() {
+  return toIstInput(new Date());
+}

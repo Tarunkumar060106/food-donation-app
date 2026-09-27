@@ -2,10 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRightIcon, CrosshairIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CrosshairIcon, SnowflakeIcon } from "@phosphor-icons/react";
 import { ApiError, api } from "@/lib/api";
 import { categoryLabel } from "@/lib/format";
-import { APP_TIME_ZONE_LABEL, fromIstInput, istInputInMinutes } from "@/lib/time";
+import { APP_TIME_ZONE_LABEL, fromIstInput, istInputInMinutes, istInputNow, toIstInput } from "@/lib/time";
 import type { Dietary, Donation, FoodCategory } from "@/lib/types";
 import { LocationPickerMap, type LatLng } from "@/components/map";
 import { Field, FormAlert, Select, TextInput, inputClass, primaryButton, secondaryButton } from "@/components/ui/form";
@@ -20,6 +20,40 @@ const EXPIRY_PRESETS = [
 
 const inMinutes = istInputInMinutes;
 
+// Placeholder food-safety defaults for the team to confirm; the donor can always change the times.
+const SAFE_HOURS = { roomTemperature: 4, refrigerated: 24 };
+const COLLECT_BUFFER_HOURS = { roomTemperature: 1, refrigerated: 4 };
+const HOUR_MS = 3_600_000;
+const MIN_LEAD_MS = 30 * 60_000;
+const CLOCK_SLACK_MS = 5 * 60_000;
+
+type Suggestion = { tooOld: true } | { tooOld: false; expiryTime: string; pickupDeadline: string };
+
+/** Expiry and collect-by times suggested from when the food was cooked and how it is kept. */
+function suggestTimes(preparedInput: string, cold: boolean): Suggestion | null {
+  if (!preparedInput) return null;
+  const prepared = fromIstInput(preparedInput).getTime();
+  if (Number.isNaN(prepared)) return null;
+  const expiry = prepared + (cold ? SAFE_HOURS.refrigerated : SAFE_HOURS.roomTemperature) * HOUR_MS;
+  const earliestDeadline = Date.now() + MIN_LEAD_MS;
+  if (expiry <= earliestDeadline) return { tooOld: true };
+  const buffer = (cold ? COLLECT_BUFFER_HOURS.refrigerated : COLLECT_BUFFER_HOURS.roomTemperature) * HOUR_MS;
+  const deadline = Math.min(Math.max(expiry - buffer, earliestDeadline), expiry);
+  return { tooOld: false, expiryTime: toIstInput(new Date(expiry)), pickupDeadline: toIstInput(new Date(deadline)) };
+}
+
+function initialTimes() {
+  const preparedAt = istInputNow();
+  const suggestion = suggestTimes(preparedAt, false);
+  return suggestion && !suggestion.tooOld
+    ? { preparedAt, expiryTime: suggestion.expiryTime, pickupDeadline: suggestion.pickupDeadline }
+    : { preparedAt, expiryTime: inMinutes(120), pickupDeadline: inMinutes(60) };
+}
+
+function safeHours(cold: boolean) {
+  return cold ? SAFE_HOURS.refrigerated : SAFE_HOURS.roomTemperature;
+}
+
 export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocation: LatLng; defaultAddress: string }) {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -30,10 +64,13 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
     quantityDescription: "",
     description: "",
     pickupAddress: defaultAddress,
+    requiresRefrigeration: false,
     // Uses the viewer's clock; safe because this form only renders in the browser.
-    pickupDeadline: inMinutes(60),
-    expiryTime: inMinutes(120),
+    ...initialTimes(),
   });
+  // Times follow the cooking time until the donor sets them by hand.
+  const [autoTimes, setAutoTimes] = useState(true);
+  const suggestion = suggestTimes(form.preparedAt, form.requiresRefrigeration);
   const [pin, setPin] = useState<LatLng>(defaultLocation);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +80,22 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
   const onPinChange = useCallback((p: LatLng) => setPin(p), []);
+
+  function updateFoodSafety(patch: { preparedAt?: string; requiresRefrigeration?: boolean }, forceSuggest = false) {
+    setForm((f) => {
+      const next = { ...f, ...patch };
+      const s = suggestTimes(next.preparedAt, next.requiresRefrigeration);
+      return (autoTimes || forceSuggest) && s && !s.tooOld
+        ? { ...next, expiryTime: s.expiryTime, pickupDeadline: s.pickupDeadline }
+        : next;
+    });
+    if (forceSuggest) setAutoTimes(true);
+  }
+
+  const setTime = (key: "expiryTime" | "pickupDeadline") => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAutoTimes(false);
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+  };
 
   function locateMe() {
     if (!("geolocation" in navigator)) return setError("This browser can't share location.");
@@ -67,6 +120,12 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
     if (!form.foodName.trim()) errs.foodName = "Tell volunteers what the food is.";
     if (!form.servings || Number(form.servings) < 1) errs.servings = "Enter how many people this can feed.";
     if (!form.pickupAddress.trim()) errs.pickupAddress = "Add an address or landmark for the pickup.";
+    if (form.preparedAt) {
+      const prepared = fromIstInput(form.preparedAt);
+      if (Number.isNaN(prepared.getTime())) errs.preparedAt = "Enter a valid time.";
+      else if (prepared.getTime() > Date.now() + CLOCK_SLACK_MS) errs.preparedAt = "The cooking time can't be in the future.";
+      else if (!Number.isNaN(expiry.getTime()) && prepared >= expiry) errs.preparedAt = "It must be cooked before it expires.";
+    }
     if (Number.isNaN(deadline.getTime()) || deadline <= new Date()) errs.pickupDeadline = "Pick a time in the future.";
     if (Number.isNaN(expiry.getTime()) || expiry <= new Date()) errs.expiryTime = "Pick a time in the future.";
     else if (!errs.pickupDeadline && deadline > expiry) errs.pickupDeadline = "Pickup must happen before the food expires.";
@@ -96,6 +155,8 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
           pickupLng: pin.lng,
           pickupDeadline: fromIstInput(form.pickupDeadline).toISOString(),
           expiryTime: fromIstInput(form.expiryTime).toISOString(),
+          preparedAt: form.preparedAt ? fromIstInput(form.preparedAt).toISOString() : null,
+          requiresRefrigeration: form.requiresRefrigeration,
         },
       });
       router.push(`/donations/${created.id}`);
@@ -188,21 +249,82 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
         </section>
 
         <section className="grid gap-5 border-t border-line pt-8">
-          <h2 className="text-lg font-semibold">Timing</h2>
-          <Field id="expiryTime" label={`Safe to eat until (${APP_TIME_ZONE_LABEL})`} error={fieldErrors.expiryTime}>
-            <TextInput id="expiryTime" type="datetime-local" required value={form.expiryTime} onChange={set("expiryTime")} error={fieldErrors.expiryTime} />
+          <h2 className="text-lg font-semibold">Timing and storage</h2>
+          <Field
+            id="preparedAt"
+            label={`Cooked or prepared at (${APP_TIME_ZONE_LABEL})`}
+            optional
+            hint={
+              suggestion?.tooOld
+                ? `That was over ${safeHours(form.requiresRefrigeration)} hours ago. Please check it is still safe before posting.`
+                : "Leave empty for packaged food or fresh produce."
+            }
+            error={fieldErrors.preparedAt}
+          >
+            <TextInput
+              id="preparedAt"
+              type="datetime-local"
+              value={form.preparedAt}
+              onChange={(e) => updateFoodSafety({ preparedAt: e.target.value })}
+              error={fieldErrors.preparedAt}
+            />
+          </Field>
+          <label
+            className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+              form.requiresRefrigeration ? "border-forest bg-forest/5" : "border-line bg-surface hover:border-ink/30"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={form.requiresRefrigeration}
+              onChange={(e) => updateFoodSafety({ requiresRefrigeration: e.target.checked })}
+              className="mt-1 size-4 accent-[var(--forest)]"
+            />
+            <span>
+              <span className="flex items-center gap-2 font-medium">
+                <SnowflakeIcon size={16} weight="bold" className="text-forest dark:text-[#8fbf9f]" aria-hidden />
+                Keep refrigerated
+              </span>
+              <span className="mt-0.5 block text-sm text-muted">
+                Dairy, meat, cut fruit, or anything that spoils outside a fridge. Collectors with a cool box are preferred.
+              </span>
+            </span>
+          </label>
+          <Field
+            id="expiryTime"
+            label={`Safe to eat until (${APP_TIME_ZONE_LABEL})`}
+            hint={
+              autoTimes && suggestion && !suggestion.tooOld
+                ? `Suggested: ${safeHours(form.requiresRefrigeration)} hours after cooking${form.requiresRefrigeration ? ", kept in a fridge" : " at room temperature"}. Change it if you know better.`
+                : undefined
+            }
+            error={fieldErrors.expiryTime}
+          >
+            <TextInput id="expiryTime" type="datetime-local" required value={form.expiryTime} onChange={setTime("expiryTime")} error={fieldErrors.expiryTime} />
           </Field>
           <div className="-mt-2 flex flex-wrap gap-2">
             {EXPIRY_PRESETS.map((p) => (
               <button
                 key={p.minutes}
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, expiryTime: inMinutes(p.minutes), pickupDeadline: inMinutes(Math.round(p.minutes * 0.6)) }))}
+                onClick={() => {
+                  setAutoTimes(false);
+                  setForm((f) => ({ ...f, expiryTime: inMinutes(p.minutes), pickupDeadline: inMinutes(Math.round(p.minutes * 0.6)) }));
+                }}
                 className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm transition hover:border-forest active:scale-[0.98]"
               >
                 In {p.label}
               </button>
             ))}
+            {!autoTimes && suggestion && !suggestion.tooOld && (
+              <button
+                type="button"
+                onClick={() => updateFoodSafety({}, true)}
+                className="px-2 py-1.5 text-sm text-muted underline decoration-line underline-offset-4 hover:text-ink"
+              >
+                Use suggested times
+              </button>
+            )}
           </div>
           <Field id="pickupDeadline" label={`Collect by (${APP_TIME_ZONE_LABEL})`} hint="Must be on or before the time above." error={fieldErrors.pickupDeadline}>
             <TextInput
@@ -210,7 +332,7 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
               type="datetime-local"
               required
               value={form.pickupDeadline}
-              onChange={set("pickupDeadline")}
+              onChange={setTime("pickupDeadline")}
               error={fieldErrors.pickupDeadline}
             />
           </Field>

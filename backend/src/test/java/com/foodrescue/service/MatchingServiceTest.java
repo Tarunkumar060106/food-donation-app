@@ -78,6 +78,32 @@ class MatchingServiceTest {
     }
 
     @Test
+    void refrigeratedFoodPrefersCollectorsWithACoolBox() {
+        Donation cold = donation(Dietary.VEG, 50, 60);
+        cold.setRequiresRefrigeration(true);
+        User withBox = collector(13.0850, 80.2101, 100, true);
+        withBox.setHasCoolBox(true);
+        User withoutBox = collector(13.0850, 80.2101, 100, true);
+
+        MatchResult good = matching.score(cold, withBox, now);
+        MatchResult weak = matching.score(cold, withoutBox, now);
+
+        assertThat(good.breakdown().get(3).points()).isEqualTo(10.0);
+        assertThat(good.reason()).contains("has a cool box");
+        assertThat(weak.breakdown().get(3).points()).isEqualTo(2.5);
+        assertThat(weak.reason()).contains("no cool box for refrigerated food");
+        assertThat(good.score()).isGreaterThan(weak.score());
+    }
+
+    @Test
+    void coolBoxIsIrrelevantForFoodThatNeedsNoFridge() {
+        MatchResult r = matching.score(donation(Dietary.VEG, 50, 60), collector(13.0850, 80.2101, 100, true), now);
+
+        assertThat(r.breakdown().get(3).points()).isEqualTo(10.0);
+        assertThat(r.reason()).doesNotContain("cool box");
+    }
+
+    @Test
     void formatsLongDurations() {
         assertThat(MatchingService.formatMinutes(42)).isEqualTo("42 min");
         assertThat(MatchingService.formatMinutes(120)).isEqualTo("2 h");

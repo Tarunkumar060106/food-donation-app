@@ -22,7 +22,7 @@ public final class Mapper {
                 d.getId(), d.getFoodName(), d.getCategory(), d.getDietary(), d.getQuantityDescription(),
                 d.getServings(), d.getDescription(), d.getImageUrl(), d.getPickupAddress(),
                 d.getPickupLat(), d.getPickupLng(), d.getPickupDeadline(), d.getExpiryTime(),
-                status, minutesLeft, urgency, distanceKm, match, PersonSummary.from(d.getDonor()), pickup,
+                d.getPreparedAt(), d.isRequiresRefrigeration(), status, minutesLeft, urgency, distanceKm, match, PersonSummary.from(d.getDonor()), pickup,
                 d.getCreatedAt());
     }
 
@@ -32,7 +32,7 @@ public final class Mapper {
                 : new LocationPoint(p.getLastLat(), p.getLastLng(), p.getLastLocationAt());
         return new PickupResponse(
                 p.getId(), d.getId(), d.getFoodName(), d.getServings(), d.getPickupAddress(),
-                d.getPickupLat(), d.getPickupLng(), d.getExpiryTime(),
+                d.getPickupLat(), d.getPickupLng(), d.getExpiryTime(), d.isRequiresRefrigeration(),
                 p.getStatus(), p.getStatus().nextStatuses(),
                 ContactSummary.from(p.getCollector()), ContactSummary.from(d.getDonor()),
                 p.isSharingLocation(), last,

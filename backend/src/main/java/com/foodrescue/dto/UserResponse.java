@@ -16,12 +16,13 @@ public record UserResponse(
         Double longitude,
         Integer capacityServings,
         boolean acceptsNonVeg,
+        boolean hasCoolBox,
         OrganizationSummary organization,
         Instant createdAt
 ) {
     public static UserResponse from(User u) {
         return new UserResponse(u.getId(), u.getName(), u.getEmail(), u.getRole(), u.getPhone(),
-                u.getLatitude(), u.getLongitude(), u.getCapacityServings(), u.isAcceptsNonVeg(),
+                u.getLatitude(), u.getLongitude(), u.getCapacityServings(), u.isAcceptsNonVeg(), u.isHasCoolBox(),
                 OrganizationSummary.from(u.getOrganization()), u.getCreatedAt());
     }
 }

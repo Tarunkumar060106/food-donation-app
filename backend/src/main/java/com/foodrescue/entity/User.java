@@ -38,6 +38,9 @@ public class User {
     @Column(name = "accepts_non_veg", nullable = false)
     private boolean acceptsNonVeg = true;
 
+    @Column(name = "has_cool_box", nullable = false)
+    private boolean hasCoolBox;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
     private Organization organization;
@@ -65,6 +68,8 @@ public class User {
     public Double getLongitude() { return longitude; }
     public Integer getCapacityServings() { return capacityServings; }
     public boolean isAcceptsNonVeg() { return acceptsNonVeg; }
+    public boolean isHasCoolBox() { return hasCoolBox; }
+    public void setHasCoolBox(boolean hasCoolBox) { this.hasCoolBox = hasCoolBox; }
     public Organization getOrganization() { return organization; }
     public Instant getCreatedAt() { return createdAt; }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MapContainer, Marker, Polyline, Tooltip, useMap } from "react-leaflet";
 import { ThemedTiles, pinIcon } from "./leaflet-base";
@@ -19,10 +19,19 @@ function FitToPoints({ points, path, follow }: { points: MapPoint[]; path?: [num
   const key = follow
     ? JSON.stringify([points.map((p) => [p.lat, p.lng]), path?.length ?? 0])
     : String(points.length);
+  const fitted = useRef(false);
   useEffect(() => {
     const all: [number, number][] = [...points.map((p) => [p.lat, p.lng] as [number, number]), ...(path ?? [])];
+    // When following, keep the view still (so the marker visibly glides) until something leaves the visible area.
+    if (follow && fitted.current && all.every((pt) => map.getBounds().pad(-0.1).contains(pt))) return;
+    fitted.current = true;
+    // Moving markers glide between positions; pause that while the view itself changes so they stay on the route.
+    const container = map.getContainer();
+    container.classList.add("fr-refit");
+    const release = window.setTimeout(() => container.classList.remove("fr-refit"), 450);
     if (all.length === 1) map.setView(all[0], 15);
     else if (all.length > 1) map.fitBounds(all, { padding: [40, 40], maxZoom: 16 });
+    return () => window.clearTimeout(release);
     // Refit only when the set of points changes (or on every move when following), not on every render.
   }, [map, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;

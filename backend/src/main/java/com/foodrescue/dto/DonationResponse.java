@@ -21,6 +21,8 @@ public record DonationResponse(
         double pickupLng,
         Instant pickupDeadline,
         Instant expiryTime,
+        Instant preparedAt,
+        boolean requiresRefrigeration,
         DonationStatus status,
         long minutesToExpiry,
         Urgency urgency,

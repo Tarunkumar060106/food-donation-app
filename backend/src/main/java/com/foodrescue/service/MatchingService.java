@@ -14,6 +14,7 @@ import java.util.Locale;
 
 /**
  * Transparent weighted score (PRD section 7): urgency 40, distance 30, capacity 20, food fit 10.
+ * Food fit covers dietary compatibility and, for refrigerated food, whether the collector has a cool box.
  * Each signal is normalised to 0..1 and multiplied by its weight, so the parts add up to the total.
  */
 @Service
@@ -32,6 +33,9 @@ public class MatchingService {
     /** Used when a collector has not set a capacity: neither rewarded nor excluded. */
     static final double UNKNOWN_CAPACITY_SCORE = 0.5;
 
+    /** Refrigerated food with a collector who can't keep it cold: still allowed, but ranked well below one who can. */
+    static final double NO_COOL_BOX_FOOD_SCORE = 0.25;
+
     public MatchResult score(Donation donation, User collector, Instant now) {
         long minutesLeft = donation.minutesToExpiry(now);
         double urgency = clamp01(1 - (double) (minutesLeft - MOST_URGENT_MINUTES) / (RELAXED_MINUTES - MOST_URGENT_MINUTES));
@@ -47,7 +51,9 @@ public class MatchingService {
                 : Math.min(1.0, (double) capacityServings / donation.getServings());
 
         boolean foodCompatible = donation.getDietary() == Dietary.VEG || collector.isAcceptsNonVeg();
-        double food = foodCompatible ? 1 : 0;
+        boolean needsCold = donation.isRequiresRefrigeration();
+        boolean keepsCold = !needsCold || collector.isHasCoolBox();
+        double food = !foodCompatible ? 0 : keepsCold ? 1 : NO_COOL_BOX_FOOD_SCORE;
 
         List<ScoreComponent> parts = List.of(
                 new ScoreComponent("urgency", URGENCY_WEIGHT, Geo.round1(URGENCY_WEIGHT * urgency)),
@@ -72,6 +78,8 @@ public class MatchingService {
         }
         if (!foodCompatible) {
             reasons.add("does not accept non-veg");
+        } else if (needsCold) {
+            reasons.add(keepsCold ? "has a cool box" : "no cool box for refrigerated food");
         }
         reasons.add("expires in " + formatMinutes(minutesLeft));
 

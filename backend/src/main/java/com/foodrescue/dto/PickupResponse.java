@@ -15,6 +15,7 @@ public record PickupResponse(
         double pickupLat,
         double pickupLng,
         Instant expiryTime,
+        boolean requiresRefrigeration,
         PickupStatus status,
         Set<PickupStatus> nextStatuses,
         ContactSummary collector,

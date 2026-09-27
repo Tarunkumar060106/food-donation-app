@@ -6,6 +6,7 @@ import { LiveCountdown } from "@/components/app/LiveCountdown";
 import { EmptyState, StatusBadge } from "@/components/app/bits";
 import { CancelDonation } from "@/components/donations/CancelDonation";
 import { ClaimPanel } from "@/components/donations/ClaimPanel";
+import { FoodSafetyBadges } from "@/components/donations/FoodSafetyBadges";
 import { MatchBreakdown } from "@/components/donations/MatchBreakdown";
 import { PointsMap } from "@/components/map";
 import { primaryButton } from "@/components/ui/form";
@@ -60,6 +61,9 @@ export default async function DonationPage({ params }: PageProps<"/donations/[id
             {d.servings} servings, {categoryLabel[d.category].toLowerCase()}, {d.dietary === "VEG" ? "vegetarian" : "non-veg"}. Posted by{" "}
             {isOwner ? "you" : d.donor.name}.
           </p>
+          <div className="mt-3">
+            <FoodSafetyBadges preparedAt={d.preparedAt} requiresRefrigeration={d.requiresRefrigeration} showTime />
+          </div>
         </div>
       </div>
 

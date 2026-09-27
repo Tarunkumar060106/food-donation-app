@@ -42,7 +42,8 @@ export function ThemedTiles() {
 /** CSS-drawn markers (styled in globals.css), which avoids Leaflet's default image icons breaking under bundlers. */
 export const pinIcon = (variant: "pickup" | "collector" | "you" = "pickup") =>
   L.divIcon({
-    className: "",
+    // Moving markers glide between positions (see .fr-moving in globals.css).
+    className: variant === "pickup" ? "" : "fr-moving",
     html: `<span class="fr-pin fr-pin--${variant}"></span>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],

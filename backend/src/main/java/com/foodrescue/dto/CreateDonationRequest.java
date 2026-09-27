@@ -18,6 +18,8 @@ public record CreateDonationRequest(
         @NotNull @DecimalMin("-90.0") @DecimalMax("90.0") Double pickupLat,
         @NotNull @DecimalMin("-180.0") @DecimalMax("180.0") Double pickupLng,
         @NotNull @Future Instant pickupDeadline,
-        @NotNull @Future Instant expiryTime
+        @NotNull @Future Instant expiryTime,
+        Instant preparedAt,
+        Boolean requiresRefrigeration
 ) {
 }
