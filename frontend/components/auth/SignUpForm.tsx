@@ -44,15 +44,14 @@ export function SignUpForm() {
     opensAt: "",
     closesAt: "",
   });
-  // One-time donors sign up with a phone OTP; email and password stay available.
-  const [donorMode, setDonorMode] = useState<"phone" | "email">(phoneSignInEnabled ? "phone" : "email");
   const [location, setLocation] = useState<LocationState>({ status: "idle" });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
 
   const isCollector = role === "VOLUNTEER" || role === "NGO";
-  const phoneDonor = role === "DONOR" && donorMode === "phone";
+  // Donors only ever sign up with a phone OTP: no email, password or organisation.
+  const phoneDonor = role === "DONOR";
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value }));
 
@@ -157,20 +156,17 @@ export function SignUpForm() {
             <p className="text-sm text-muted">
               We&apos;ll text you a one-time code. No password, and no organisation details needed.
             </p>
-            <PhoneSignIn name={form.name} />
+            {phoneSignInEnabled ? (
+              <PhoneSignIn name={form.name} />
+            ) : (
+              <FormAlert>Phone sign-up isn&apos;t set up on this server yet. Ask the admin to add the Phone.email client ID.</FormAlert>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => setDonorMode("email")}
-            className="w-fit text-sm text-muted underline decoration-line underline-offset-4 hover:text-ink"
-          >
-            Use email and a password instead
-          </button>
         </div>
       ) : (
         <>
           <div className="grid gap-5">
-            <Field id="name" label={role === "NGO" ? "Your name" : role === "DONOR" ? "Name or business name" : "Full name"} error={fieldErrors.name}>
+            <Field id="name" label={role === "NGO" ? "Your name" : "Full name"} error={fieldErrors.name}>
               <TextInput id="name" autoComplete="name" required value={form.name} onChange={set("name")} error={fieldErrors.name} />
             </Field>
             <Field id="email" label="Email" error={fieldErrors.email}>
@@ -191,15 +187,6 @@ export function SignUpForm() {
             <Field id="phone" label="Phone" optional hint="Shared only with people on the same pickup." error={fieldErrors.phone}>
               <TextInput id="phone" type="tel" autoComplete="tel" value={form.phone} onChange={set("phone")} error={fieldErrors.phone} />
             </Field>
-            {role === "DONOR" && phoneSignInEnabled && (
-              <button
-                type="button"
-                onClick={() => setDonorMode("phone")}
-                className="w-fit text-sm text-muted underline decoration-line underline-offset-4 hover:text-ink"
-              >
-                Sign up with your phone number instead
-              </button>
-            )}
           </div>
 
           {role === "NGO" && (

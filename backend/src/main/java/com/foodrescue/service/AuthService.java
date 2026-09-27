@@ -40,6 +40,9 @@ public class AuthService {
         if (req.role() == Role.ADMIN) {
             throw ApiException.badRequest("Admin accounts can't be created through sign-up.");
         }
+        if (req.role() == Role.DONOR) {
+            throw ApiException.badRequest("Donors sign up with their phone number and a one-time code.");
+        }
         if ((req.latitude() == null) != (req.longitude() == null)) {
             throw ApiException.badRequest("Provide both latitude and longitude, or neither.");
         }

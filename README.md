@@ -12,7 +12,7 @@ Built for the **Vision2Web Full Stack Web Development Hackathon** (Theme 2, Comm
 
 **Donors**
 - Post food in under a minute: category, veg/non-veg, servings, cooking time, "keep refrigerated", expiry and collect-by time (IST), a photo, and the pickup spot on a map
-- One-time donors sign up with just a phone number and an SMS code (Phone.email), with no password or organisation details
+- Donors sign up and sign in with just a phone number and an SMS code (Phone.email): no password, no organisation details. (The seeded demo donor keeps email so the demo works without a phone.)
 - See the top collectors for each donation, ranked with a score breakdown and a plain-language reason; homes that are closed until the food expires are left out
 - Offer the food to a collector, or accept one of the requests collectors send
 - Follow the pickup live on a map, with a status timeline and notifications
