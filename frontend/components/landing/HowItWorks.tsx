@@ -23,7 +23,7 @@ const stages = [
   {
     icon: BicycleIcon,
     title: "Pick up",
-    body: "A volunteer claims it, shares their location for the trip, and heads over.",
+    body: "A volunteer asks for it, you accept, and they share their location for the trip as they head over.",
   },
   {
     icon: HandHeartIcon,

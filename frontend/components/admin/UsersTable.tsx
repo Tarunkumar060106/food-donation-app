@@ -24,7 +24,7 @@ export function UsersTable({ users }: { users: User[] }) {
     return users.filter(
       (u) =>
         (role === "ALL" || u.role === role) &&
-        (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.organization?.name.toLowerCase().includes(q)),
+        (!q || u.name.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.includes(q) || u.organization?.name.toLowerCase().includes(q)),
     );
   }, [users, query, role]);
 
@@ -88,13 +88,23 @@ export function UsersTable({ users }: { users: User[] }) {
                     <span className="rounded-full bg-sage px-2.5 py-0.5 text-xs font-medium">{roleLabel[u.role]}</span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <p>{u.email}</p>
-                    {u.phone && <p className="font-mono text-xs text-muted">{u.phone}</p>}
+                    {u.email ? <p>{u.email}</p> : <p className="text-muted">Phone sign-in</p>}
+                    {u.phone && (
+                      <p className="font-mono text-xs text-muted">
+                        {u.phone}
+                        {u.phoneVerified && " (verified)"}
+                      </p>
+                    )}
                   </td>
                   <td className="px-5 py-3.5 font-mono tabular-nums">
                     {u.capacityServings ?? <span className="text-muted">-</span>}
                     {u.role !== "DONOR" && u.role !== "ADMIN" && !u.acceptsNonVeg && <p className="font-sans text-xs text-muted">Veg only</p>}
                     {u.hasCoolBox && <p className="font-sans text-xs text-muted">Cool box</p>}
+                    {u.opensAt && u.closesAt && (
+                      <p className="font-sans text-xs text-muted">
+                        Open {u.opensAt.slice(0, 5)}–{u.closesAt.slice(0, 5)}
+                      </p>
+                    )}
                   </td>
                   <td className="px-5 py-3.5 text-muted">{u.latitude != null ? "Saved" : "Not set"}</td>
                   <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-muted">{formatDateTime(u.createdAt)}</td>

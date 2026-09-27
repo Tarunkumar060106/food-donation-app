@@ -8,6 +8,7 @@ import { categoryLabel } from "@/lib/format";
 import { APP_TIME_ZONE_LABEL, fromIstInput, istInputInMinutes, istInputNow, toIstInput } from "@/lib/time";
 import type { Dietary, Donation, FoodCategory } from "@/lib/types";
 import { LocationPickerMap, type LatLng } from "@/components/map";
+import { PhotoPicker } from "./PhotoPicker";
 import { Field, FormAlert, Select, TextInput, inputClass, primaryButton, secondaryButton } from "@/components/ui/form";
 
 const CATEGORIES = Object.keys(categoryLabel) as FoodCategory[];
@@ -76,6 +77,8 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -157,6 +160,7 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
           expiryTime: fromIstInput(form.expiryTime).toISOString(),
           preparedAt: form.preparedAt ? fromIstInput(form.preparedAt).toISOString() : null,
           requiresRefrigeration: form.requiresRefrigeration,
+          imageUrl,
         },
       });
       router.push(`/donations/${created.id}`);
@@ -246,6 +250,7 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
               className={`${inputClass} resize-y`}
             />
           </Field>
+          <PhotoPicker value={imageUrl} onChange={setImageUrl} onBusyChange={setUploading} />
         </section>
 
         <section className="grid gap-5 border-t border-line pt-8">
@@ -367,8 +372,8 @@ export function DonationForm({ defaultLocation, defaultAddress }: { defaultLocat
             {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}
           </p>
         </div>
-        <button type="submit" disabled={pending} className={`${primaryButton} mt-2 w-full`}>
-          {pending ? "Posting..." : "Post donation"}
+        <button type="submit" disabled={pending || uploading} className={`${primaryButton} mt-2 w-full`}>
+          {pending ? "Posting..." : uploading ? "Waiting for the photo..." : "Post donation"}
           {!pending && <ArrowRightIcon size={18} aria-hidden />}
         </button>
         <p className="text-center text-sm text-muted">Nearby volunteers and NGOs are matched as soon as you post.</p>

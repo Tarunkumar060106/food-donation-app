@@ -6,7 +6,7 @@ import com.foodrescue.entity.DonationStatus;
 import com.foodrescue.entity.FoodCategory;
 import com.foodrescue.security.CurrentUser;
 import com.foodrescue.service.DonationService;
-import com.foodrescue.service.PickupService;
+import com.foodrescue.service.MatchRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -28,11 +28,11 @@ import java.util.UUID;
 public class DonationController {
 
     private final DonationService donations;
-    private final PickupService pickups;
+    private final MatchRequestService matchRequests;
 
-    public DonationController(DonationService donations, PickupService pickups) {
+    public DonationController(DonationService donations, MatchRequestService matchRequests) {
         this.donations = donations;
-        this.pickups = pickups;
+        this.matchRequests = matchRequests;
     }
 
     @PostMapping
@@ -78,11 +78,23 @@ public class DonationController {
         return donations.matches(CurrentUser.from(jwt), id);
     }
 
-    @PostMapping("/{id}/claim")
+    @PostMapping("/{id}/requests")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('VOLUNTEER', 'NGO')")
-    @Operation(summary = "Claim a donation", description = "Atomic: if two collectors claim at once, one gets 201 and the other 409.")
-    public PickupResponse claim(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        return pickups.claim(CurrentUser.from(jwt), id);
+    @Operation(summary = "Ask the donor for this food",
+            description = "The pickup starts when the donor accepts. If the donor already offered it to you, this accepts that offer.")
+    public MatchRequestResponse request(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id,
+                                        @Valid @RequestBody(required = false) SendMatchRequest req) {
+        return matchRequests.request(CurrentUser.from(jwt), id, req == null ? null : req.message());
+    }
+
+    @PostMapping("/{id}/offers")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('DONOR')")
+    @Operation(summary = "Offer this food to a collector",
+            description = "The pickup starts when the collector accepts. If they already asked for it, this accepts their request.")
+    public MatchRequestResponse offer(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id,
+                                      @Valid @RequestBody SendOfferRequest req) {
+        return matchRequests.offer(CurrentUser.from(jwt), id, req.collectorId(), req.message());
     }
 }

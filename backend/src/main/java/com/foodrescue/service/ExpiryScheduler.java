@@ -2,6 +2,7 @@ package com.foodrescue.service;
 
 import com.foodrescue.entity.*;
 import com.foodrescue.repository.DonationRepository;
+import com.foodrescue.repository.MatchRequestRepository;
 import com.foodrescue.repository.PickupRepository;
 import com.foodrescue.service.TrackingStreamService.TrackingEvent;
 import org.slf4j.Logger;
@@ -25,13 +26,15 @@ public class ExpiryScheduler {
 
     private final DonationRepository donations;
     private final PickupRepository pickups;
+    private final MatchRequestRepository matchRequests;
     private final NotificationService notifications;
     private final ApplicationEventPublisher events;
 
     public ExpiryScheduler(DonationRepository donations, PickupRepository pickups,
-                           NotificationService notifications, ApplicationEventPublisher events) {
+                           MatchRequestRepository matchRequests, NotificationService notifications, ApplicationEventPublisher events) {
         this.donations = donations;
         this.pickups = pickups;
+        this.matchRequests = matchRequests;
         this.notifications = notifications;
         this.events = events;
     }
@@ -56,6 +59,8 @@ public class ExpiryScheduler {
                     "\"" + d.getFoodName() + "\" expired before anyone collected it.");
         }
         if (!overdue.isEmpty()) {
+            donations.flush();
+            overdue.forEach(d -> matchRequests.closePending(d.getId(), now));
             log.info("Marked {} donation(s) as expired", overdue.size());
         }
     }

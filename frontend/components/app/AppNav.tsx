@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { BowlFoodIcon, SignOutIcon } from "@phosphor-icons/react";
+import { BowlFoodIcon, SignOutIcon, UserCircleIcon } from "@phosphor-icons/react";
 import { session } from "@/lib/api";
 import { roleLabel } from "@/lib/format";
 import { NotificationBell, type NotificationFeed } from "./NotificationBell";
@@ -13,16 +13,19 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
   DONOR: [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/donations", label: "My donations" },
+    { href: "/requests", label: "Requests" },
     { href: "/donations/new", label: "Post food" },
   ],
   VOLUNTEER: [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/discover", label: "Discover" },
+    { href: "/requests", label: "Requests" },
     { href: "/pickups", label: "My pickups" },
   ],
   NGO: [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/discover", label: "Discover" },
+    { href: "/requests", label: "Requests" },
     { href: "/pickups", label: "My pickups" },
   ],
   ADMIN: [
@@ -77,10 +80,21 @@ export function AppNav({ name, role, notifications }: { name: string; role: Role
         </nav>
         <div className="flex items-center gap-3">
           <NotificationBell initial={notifications} />
-          <div className="hidden text-right leading-tight sm:block">
+          <Link
+            href="/profile"
+            aria-label="Your profile"
+            className="hidden rounded-lg px-2 py-1 text-right leading-tight transition hover:bg-sage/60 sm:block"
+          >
             <p className="text-sm font-medium">{name}</p>
             <p className="text-xs text-muted">{roleLabel[role]}</p>
-          </div>
+          </Link>
+          <Link
+            href="/profile"
+            aria-label="Your profile"
+            className="flex size-9 items-center justify-center rounded-full border border-line text-muted transition hover:border-ink/40 hover:text-ink sm:hidden"
+          >
+            <UserCircleIcon size={18} aria-hidden />
+          </Link>
           <button
             type="button"
             onClick={signOut}

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 
 /**
  * Demo world (Chennai) so the full donation-to-delivery flow can be shown without manual database edits.
@@ -32,11 +33,13 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final PickupRepository pickups;
     private final LocationUpdateRepository locations;
     private final NotificationRepository notifications;
+    private final MatchRequestRepository matchRequests;
     private final PasswordEncoder passwordEncoder;
 
     public DemoDataSeeder(AppProperties props, UserRepository users, OrganizationRepository organizations,
                           DonationRepository donations, PickupRepository pickups, LocationUpdateRepository locations,
-                          NotificationRepository notifications, PasswordEncoder passwordEncoder) {
+                          NotificationRepository notifications, MatchRequestRepository matchRequests,
+                          PasswordEncoder passwordEncoder) {
         this.props = props;
         this.users = users;
         this.organizations = organizations;
@@ -44,6 +47,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.pickups = pickups;
         this.locations = locations;
         this.notifications = notifications;
+        this.matchRequests = matchRequests;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -72,6 +76,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     /** Wipes all donations, pickups, locations and notifications, then re-creates the demo activity. */
     @Transactional
     public ResetResult reset() {
+        matchRequests.deleteAllInBatch();
         locations.deleteAllInBatch();
         notifications.deleteAllInBatch();
         pickups.deleteAllInBatch();
@@ -101,18 +106,30 @@ public class DemoDataSeeder implements ApplicationRunner {
         ngo.setHasCoolBox(true);
         divya.setHasCoolBox(false);
         shelterLead.setHasCoolBox(false);
+        // Intake hours: the food bank works the day shift, the shelter takes food in the evening only.
+        ngo.setOpeningHours(LocalTime.of(7, 0), LocalTime.of(23, 0));
+        shelterLead.setOpeningHours(LocalTime.of(17, 0), LocalTime.of(23, 0));
         return new Cast(restaurant, hostel, household, arjun, divya, rahul, ngo, shelterLead);
     }
 
     private void seedActivity(Cast c, Instant now) {
         // Open donations at different urgencies, so the feed and match scores have something to show.
-        donation(c.restaurant(), "Vegetable biryani", FoodCategory.COOKED_MEAL, Dietary.VEG, "3 large trays", 80,
+        Donation biryani = donation(c.restaurant(), "Vegetable biryani", FoodCategory.COOKED_MEAL, Dietary.VEG, "3 large trays", 80,
                 "Freshly cooked for a cancelled catering order. Packed in foil trays.", now, 30, 42);
-        donation(c.hostel(), "Chapati and dal", FoodCategory.COOKED_MEAL, Dietary.VEG, "2 containers", 40,
+        Donation chapati = donation(c.hostel(), "Chapati and dal", FoodCategory.COOKED_MEAL, Dietary.VEG, "2 containers", 40,
                 "Dinner surplus from the hostel mess.", now, 90, 150);
         Donation curry = donation(c.restaurant(), "Chicken curry and rice", FoodCategory.COOKED_MEAL, Dietary.NON_VEG, "4 containers", 35,
                 "Lunch buffet surplus, kept refrigerated.", now, 60, 95);
         curry.setRequiresRefrigeration(true);
+
+        // Open proposals, so every role has something waiting: the restaurant offered biryani to Arjun,
+        // the food bank asked the restaurant for the curry, and Divya asked the hostel for chapati.
+        matchRequests.save(new MatchRequest(biryani, c.arjun(), MatchDirection.OFFER,
+                "You're closest and have space for all of it. Can you take it?", now.minus(Duration.ofMinutes(4))));
+        matchRequests.save(new MatchRequest(curry, c.ngo(), MatchDirection.REQUEST,
+                "We have cold storage and can collect within 30 minutes.", now.minus(Duration.ofMinutes(6))));
+        matchRequests.save(new MatchRequest(chapati, c.divya(), MatchDirection.REQUEST,
+                null, now.minus(Duration.ofMinutes(9))));
         donation(c.household(), "Assorted bread and buns", FoodCategory.BAKERY, Dietary.VEG, "1 carton", 25,
                 "Unopened packs from a family event.", now, 300, 600);
         donation(c.hostel(), "Fresh fruit crates", FoodCategory.PRODUCE, Dietary.VEG, "3 crates", 60,

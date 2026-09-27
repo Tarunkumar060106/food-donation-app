@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { ApiError, session } from "@/lib/api";
 import { Field, FormAlert, TextInput, primaryButton } from "@/components/ui/form";
+import { PhoneSignIn, phoneSignInEnabled } from "./PhoneSignIn";
 
 const DEMO_ACCOUNTS = [
   { label: "Donor", email: "donor@foodrescue.dev" },
@@ -73,6 +74,17 @@ export function SignInForm({ next }: { next: string | null }) {
           {!pending && <ArrowRightIcon size={18} aria-hidden />}
         </button>
       </form>
+
+      {phoneSignInEnabled && (
+        <div className="grid gap-4">
+          <div className="flex items-center gap-3 text-sm text-muted">
+            <span className="h-px flex-1 bg-line" />
+            Donating food? Sign in with your phone
+            <span className="h-px flex-1 bg-line" />
+          </div>
+          <PhoneSignIn next={next} />
+        </div>
+      )}
 
       <div className="rounded-2xl border border-line bg-surface p-5">
         <p className="text-sm font-medium">Exploring the demo?</p>

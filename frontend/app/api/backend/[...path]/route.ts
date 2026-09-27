@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { BACKEND_URL, SESSION_COOKIE } from "@/lib/session";
 
 // Credentials must go through /api/session so the token lands in the httpOnly cookie, not in page JS.
-const BLOCKED = new Set(["auth/login", "auth/register"]);
+const BLOCKED = new Set(["auth/login", "auth/register", "auth/phone"]);
 const PASS_THROUGH_HEADERS = ["content-type", "cache-control"];
 
 async function forward(request: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {

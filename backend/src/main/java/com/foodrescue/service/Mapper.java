@@ -12,6 +12,11 @@ public final class Mapper {
     }
 
     public static DonationResponse donation(Donation d, Instant now, Double distanceKm, MatchResult match, Pickup activePickup) {
+        return donation(d, now, distanceKm, match, activePickup, null, 0);
+    }
+
+    public static DonationResponse donation(Donation d, Instant now, Double distanceKm, MatchResult match, Pickup activePickup,
+                                            MatchRequestRef myRequest, int pendingRequests) {
         DonationStatus status = d.effectiveStatus(now);
         long minutesLeft = d.minutesToExpiry(now);
         Urgency urgency = status.isFinal() ? null : Urgency.fromMinutesLeft(minutesLeft);
@@ -23,7 +28,7 @@ public final class Mapper {
                 d.getServings(), d.getDescription(), d.getImageUrl(), d.getPickupAddress(),
                 d.getPickupLat(), d.getPickupLng(), d.getPickupDeadline(), d.getExpiryTime(),
                 d.getPreparedAt(), d.isRequiresRefrigeration(), status, minutesLeft, urgency, distanceKm, match, PersonSummary.from(d.getDonor()), pickup,
-                d.getCreatedAt());
+                myRequest, pendingRequests, d.getCreatedAt());
     }
 
     public static PickupResponse pickup(Pickup p) {
@@ -38,6 +43,10 @@ public final class Mapper {
                 p.isSharingLocation(), last,
                 p.getClaimedAt(), p.getArrivedAt(), p.getPickedUpAt(), p.getInTransitAt(),
                 p.getDeliveredAt(), p.getCancelledAt());
+    }
+
+    public static MatchRequestRef ref(MatchRequest r, Instant now) {
+        return r == null ? null : new MatchRequestRef(r.getId(), r.getDirection(), MatchRequestService.effectiveStatus(r, now));
     }
 
     public static LocationPoint point(LocationUpdate u) {

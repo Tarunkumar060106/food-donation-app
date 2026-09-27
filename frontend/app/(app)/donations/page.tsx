@@ -77,6 +77,11 @@ export default async function MyDonationsPage({ searchParams }: PageProps<"/dona
                 <div className="min-w-0 sm:col-span-6">
                   <p className="flex items-center gap-2 truncate font-medium">
                     {d.foodName}
+                    {d.pendingRequests > 0 && (
+                      <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-on-accent">
+                        {d.pendingRequests} request{d.pendingRequests > 1 ? "s" : ""}
+                      </span>
+                    )}
                     {d.requiresRefrigeration && (
                       <span className="shrink-0 rounded-full bg-forest/10 px-2 py-0.5 text-xs font-medium text-forest dark:text-[#8fbf9f]">
                         Refrigerate
@@ -91,7 +96,9 @@ export default async function MyDonationsPage({ searchParams }: PageProps<"/dona
                   {d.activePickup
                     ? `${d.activePickup.collector.name}, ${statusLabel[d.activePickup.status].toLowerCase()}`
                     : d.status === "AVAILABLE"
-                      ? "Waiting for a collector"
+                      ? d.pendingRequests > 0
+                        ? "Answer to start the pickup"
+                        : "Waiting for a collector"
                       : ""}
                 </p>
                 <div className="flex items-center gap-3 sm:col-span-3 sm:justify-end">

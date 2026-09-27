@@ -16,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByEmailIgnoreCase(String email);
 
+    Optional<User> findByVerifiedPhone(String verifiedPhone);
+
     @EntityGraph(attributePaths = "organization")
     List<User> findByRoleInAndLatitudeIsNotNullAndLongitudeIsNotNull(Collection<Role> roles);
 

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -101,6 +102,49 @@ class MatchingServiceTest {
 
         assertThat(r.breakdown().get(3).points()).isEqualTo(10.0);
         assertThat(r.reason()).doesNotContain("cool box");
+    }
+
+    @Test
+    void homeOpenNowIsDeliverableAndSaysSo() {
+        User home = collector(13.0850, 80.2101, 100, true);
+        home.setOpeningHours(LocalTime.of(0, 0), LocalTime.of(23, 59));
+
+        MatchResult r = matching.score(donation(Dietary.VEG, 50, 60), home, now);
+
+        assertThat(r.deliverable()).isTrue();
+        assertThat(r.hoursNote()).isEqualTo("Open now, 00:00–23:59");
+        assertThat(r.reason()).endsWith("open now (00:00–23:59)");
+    }
+
+    @Test
+    void homeClosedUntilAfterExpiryIsNotDeliverable() {
+        // now is 17:30 IST; the food expires at 18:30 and the home only opens at 20:00.
+        User home = collector(13.0850, 80.2101, 100, true);
+        home.setOpeningHours(LocalTime.of(20, 0), LocalTime.of(23, 0));
+
+        MatchResult r = matching.score(donation(Dietary.VEG, 50, 60), home, now);
+
+        assertThat(r.deliverable()).isFalse();
+        assertThat(r.reason()).contains("closed until after the food expires");
+    }
+
+    @Test
+    void homeOpeningBeforeExpiryIsStillDeliverable() {
+        User home = collector(13.0850, 80.2101, 100, true);
+        home.setOpeningHours(LocalTime.of(18, 0), LocalTime.of(22, 0));
+
+        MatchResult r = matching.score(donation(Dietary.VEG, 50, 120), home, now);
+
+        assertThat(r.deliverable()).isTrue();
+        assertThat(r.hoursNote()).isEqualTo("Opens at 18:00, 18:00–22:00");
+    }
+
+    @Test
+    void collectorsWithoutHoursAreAlwaysDeliverable() {
+        MatchResult r = matching.score(donation(Dietary.VEG, 50, 60), collector(13.0850, 80.2101, 100, true), now);
+
+        assertThat(r.deliverable()).isTrue();
+        assertThat(r.hoursNote()).isNull();
     }
 
     @Test

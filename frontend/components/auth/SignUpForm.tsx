@@ -13,6 +13,7 @@ import {
 import { ApiError, session } from "@/lib/api";
 import type { Role } from "@/lib/types";
 import { Field, FormAlert, Select, TextInput, primaryButton, secondaryButton } from "@/components/ui/form";
+import { PhoneSignIn, phoneSignInEnabled } from "./PhoneSignIn";
 
 type SignupRole = Exclude<Role, "ADMIN">;
 
@@ -40,13 +41,18 @@ export function SignUpForm() {
     organizationName: "",
     organizationType: ORG_TYPES[0],
     address: "",
+    opensAt: "",
+    closesAt: "",
   });
+  // One-time donors sign up with a phone OTP; email and password stay available.
+  const [donorMode, setDonorMode] = useState<"phone" | "email">(phoneSignInEnabled ? "phone" : "email");
   const [location, setLocation] = useState<LocationState>({ status: "idle" });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
 
   const isCollector = role === "VOLUNTEER" || role === "NGO";
+  const phoneDonor = role === "DONOR" && donorMode === "phone";
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value }));
 
@@ -86,6 +92,8 @@ export function SignUpForm() {
         hasCoolBox: form.hasCoolBox,
       }),
       ...(role === "NGO" && {
+        opensAt: form.opensAt || null,
+        closesAt: form.closesAt || null,
         organizationName: form.organizationName,
         organizationType: form.organizationType,
         address: form.address.trim() || null,
@@ -140,123 +148,167 @@ export function SignUpForm() {
 
       {error && <FormAlert>{error}</FormAlert>}
 
-      <div className="grid gap-5">
-        <Field id="name" label={role === "NGO" ? "Your name" : role === "DONOR" ? "Name or business name" : "Full name"} error={fieldErrors.name}>
-          <TextInput id="name" autoComplete="name" required value={form.name} onChange={set("name")} error={fieldErrors.name} />
-        </Field>
-        <Field id="email" label="Email" error={fieldErrors.email}>
-          <TextInput id="email" type="email" autoComplete="email" required value={form.email} onChange={set("email")} error={fieldErrors.email} />
-        </Field>
-        <Field id="password" label="Password" hint="At least 8 characters." error={fieldErrors.password}>
-          <TextInput
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={form.password}
-            onChange={set("password")}
-            error={fieldErrors.password}
-          />
-        </Field>
-        <Field id="phone" label="Phone" optional hint="Shared only with people on the same pickup." error={fieldErrors.phone}>
-          <TextInput id="phone" type="tel" autoComplete="tel" value={form.phone} onChange={set("phone")} error={fieldErrors.phone} />
-        </Field>
-      </div>
-
-      {role === "NGO" && (
-        <div className="grid gap-5 border-t border-line pt-6">
-          <Field id="organizationName" label="Organization name" error={fieldErrors.organizationName}>
-            <TextInput id="organizationName" required value={form.organizationName} onChange={set("organizationName")} error={fieldErrors.organizationName} />
+      {phoneDonor ? (
+        <div className="grid gap-5">
+          <Field id="name" label="Your name or business name" optional hint="Shown to the volunteer who collects your food.">
+            <TextInput id="name" autoComplete="name" value={form.name} onChange={set("name")} />
           </Field>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field id="organizationType" label="Type">
-              <Select id="organizationType" value={form.organizationType} onChange={set("organizationType")}>
-                {ORG_TYPES.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </Select>
-            </Field>
-            <Field id="address" label="Area" optional error={fieldErrors.address}>
-              <TextInput id="address" autoComplete="street-address" value={form.address} onChange={set("address")} error={fieldErrors.address} />
-            </Field>
+          <div className="grid gap-3">
+            <p className="text-sm text-muted">
+              We&apos;ll text you a one-time code. No password, and no organisation details needed.
+            </p>
+            <PhoneSignIn name={form.name} />
           </div>
-        </div>
-      )}
-
-      {isCollector && (
-        <div className="grid gap-5 border-t border-line pt-6">
-          <Field
-            id="capacityServings"
-            label="How many servings can you carry or receive at once?"
-            optional
-            hint="Helps us match you with donations you can actually handle."
-            error={fieldErrors.capacityServings}
+          <button
+            type="button"
+            onClick={() => setDonorMode("email")}
+            className="w-fit text-sm text-muted underline decoration-line underline-offset-4 hover:text-ink"
           >
-            <TextInput
-              id="capacityServings"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={10000}
-              value={form.capacityServings}
-              onChange={set("capacityServings")}
-              error={fieldErrors.capacityServings}
-            />
-          </Field>
-          <label className="flex items-center gap-3 text-[15px]">
-            <input
-              type="checkbox"
-              checked={form.acceptsNonVeg}
-              onChange={set("acceptsNonVeg")}
-              className="size-4 rounded border-line accent-[var(--forest)]"
-            />
-            {role === "NGO" ? "We can accept non-vegetarian food" : "I can carry non-vegetarian food"}
-          </label>
-          <label className="flex items-center gap-3 text-[15px]">
-            <input
-              type="checkbox"
-              checked={form.hasCoolBox}
-              onChange={set("hasCoolBox")}
-              className="size-4 rounded border-line accent-[var(--forest)]"
-            />
-            {role === "NGO" ? "We have a fridge or cold storage for refrigerated food" : "I have a cool box for refrigerated food"}
-          </label>
+            Use email and a password instead
+          </button>
         </div>
-      )}
-
-      <div className="grid gap-3 border-t border-line pt-6">
-        <p className="text-sm font-medium">
-          Your location <span className="font-normal text-muted">{isCollector ? "(recommended)" : "(optional)"}</span>
-        </p>
-        <p className="text-sm text-muted">
-          {isCollector
-            ? "Used to find donations near you and rank matches by distance."
-            : "Used as the default pickup spot. You can set a different one on each donation."}
-        </p>
-        {location.status === "set" ? (
-          <p className="flex items-center gap-2 text-sm text-ink">
-            <CheckCircleIcon size={18} weight="fill" className="text-forest dark:text-[#8fbf9f]" aria-hidden />
-            Location saved
-            <span className="font-mono text-muted">
-              {location.lat!.toFixed(4)}, {location.lng!.toFixed(4)}
-            </span>
-          </p>
-        ) : (
-          <div>
-            <button type="button" onClick={locate} disabled={location.status === "locating"} className={secondaryButton}>
-              <CrosshairIcon size={18} aria-hidden />
-              {location.status === "locating" ? "Finding you..." : "Use my current location"}
-            </button>
-            {location.status === "error" && <p className="mt-2 text-sm text-accent">{location.message}</p>}
+      ) : (
+        <>
+          <div className="grid gap-5">
+            <Field id="name" label={role === "NGO" ? "Your name" : role === "DONOR" ? "Name or business name" : "Full name"} error={fieldErrors.name}>
+              <TextInput id="name" autoComplete="name" required value={form.name} onChange={set("name")} error={fieldErrors.name} />
+            </Field>
+            <Field id="email" label="Email" error={fieldErrors.email}>
+              <TextInput id="email" type="email" autoComplete="email" required value={form.email} onChange={set("email")} error={fieldErrors.email} />
+            </Field>
+            <Field id="password" label="Password" hint="At least 8 characters." error={fieldErrors.password}>
+              <TextInput
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={form.password}
+                onChange={set("password")}
+                error={fieldErrors.password}
+              />
+            </Field>
+            <Field id="phone" label="Phone" optional hint="Shared only with people on the same pickup." error={fieldErrors.phone}>
+              <TextInput id="phone" type="tel" autoComplete="tel" value={form.phone} onChange={set("phone")} error={fieldErrors.phone} />
+            </Field>
+            {role === "DONOR" && phoneSignInEnabled && (
+              <button
+                type="button"
+                onClick={() => setDonorMode("phone")}
+                className="w-fit text-sm text-muted underline decoration-line underline-offset-4 hover:text-ink"
+              >
+                Sign up with your phone number instead
+              </button>
+            )}
           </div>
-        )}
-      </div>
 
-      <button type="submit" disabled={pending} className={`${primaryButton} w-full`}>
-        {pending ? "Creating your account..." : "Create account"}
-        {!pending && <ArrowRightIcon size={18} aria-hidden />}
-      </button>
+          {role === "NGO" && (
+            <div className="grid gap-5 border-t border-line pt-6">
+              <Field id="organizationName" label="Organization name" error={fieldErrors.organizationName}>
+                <TextInput id="organizationName" required value={form.organizationName} onChange={set("organizationName")} error={fieldErrors.organizationName} />
+              </Field>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field id="organizationType" label="Type">
+                  <Select id="organizationType" value={form.organizationType} onChange={set("organizationType")}>
+                    {ORG_TYPES.map((t) => (
+                      <option key={t}>{t}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field id="address" label="Area" optional error={fieldErrors.address}>
+                  <TextInput id="address" autoComplete="street-address" value={form.address} onChange={set("address")} error={fieldErrors.address} />
+                </Field>
+              </div>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-medium">
+                  Hours you can receive food <span className="font-normal text-muted">(optional, IST)</span>
+                </legend>
+                <div className="grid grid-cols-2 gap-3">
+                  <TextInput id="opensAt" type="time" aria-label="Opens at" value={form.opensAt} onChange={set("opensAt")} />
+                  <TextInput id="closesAt" type="time" aria-label="Closes at" value={form.closesAt} onChange={set("closesAt")} />
+                </div>
+                <p className="text-sm text-muted">
+                  Leave both empty if you can take food any time. Donors won&apos;t be matched with you while you&apos;re closed.
+                </p>
+              </fieldset>
+            </div>
+          )}
+
+          {isCollector && (
+            <div className="grid gap-5 border-t border-line pt-6">
+              <Field
+                id="capacityServings"
+                label="How many servings can you carry or receive at once?"
+                optional
+                hint="Helps us match you with donations you can actually handle."
+                error={fieldErrors.capacityServings}
+              >
+                <TextInput
+                  id="capacityServings"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={10000}
+                  value={form.capacityServings}
+                  onChange={set("capacityServings")}
+                  error={fieldErrors.capacityServings}
+                />
+              </Field>
+              <label className="flex items-center gap-3 text-[15px]">
+                <input
+                  type="checkbox"
+                  checked={form.acceptsNonVeg}
+                  onChange={set("acceptsNonVeg")}
+                  className="size-4 rounded border-line accent-[var(--forest)]"
+                />
+                {role === "NGO" ? "We can accept non-vegetarian food" : "I can carry non-vegetarian food"}
+              </label>
+              <label className="flex items-center gap-3 text-[15px]">
+                <input
+                  type="checkbox"
+                  checked={form.hasCoolBox}
+                  onChange={set("hasCoolBox")}
+                  className="size-4 rounded border-line accent-[var(--forest)]"
+                />
+                {role === "NGO" ? "We have a fridge or cold storage for refrigerated food" : "I have a cool box for refrigerated food"}
+              </label>
+            </div>
+          )}
+
+          <div className="grid gap-3 border-t border-line pt-6">
+            <p className="text-sm font-medium">
+              Your location <span className="font-normal text-muted">{isCollector ? "(recommended)" : "(optional)"}</span>
+            </p>
+            <p className="text-sm text-muted">
+              {isCollector
+                ? "Used to find donations near you and rank matches by distance."
+                : "Used as the default pickup spot. You can set a different one on each donation."}
+            </p>
+            {location.status === "set" ? (
+              <p className="flex items-center gap-2 text-sm text-ink">
+                <CheckCircleIcon size={18} weight="fill" className="text-forest dark:text-[#8fbf9f]" aria-hidden />
+                Location saved
+                <span className="font-mono text-muted">
+                  {location.lat!.toFixed(4)}, {location.lng!.toFixed(4)}
+                </span>
+              </p>
+            ) : (
+              <div>
+                <button type="button" onClick={locate} disabled={location.status === "locating"} className={secondaryButton}>
+                  <CrosshairIcon size={18} aria-hidden />
+                  {location.status === "locating" ? "Finding you..." : "Use my current location"}
+                </button>
+                {location.status === "error" && <p className="mt-2 text-sm text-accent">{location.message}</p>}
+              </div>
+            )}
+          </div>
+
+          <button type="submit" disabled={pending} className={`${primaryButton} w-full`}>
+            {pending ? "Creating your account..." : "Create account"}
+            {!pending && <ArrowRightIcon size={18} aria-hidden />}
+          </button>
+        </>
+      )}
     </form>
   );
 }

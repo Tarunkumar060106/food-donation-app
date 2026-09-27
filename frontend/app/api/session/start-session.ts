@@ -5,13 +5,16 @@ import type { User } from "@/lib/types";
 /**
  * Exchanges credentials with Spring and keeps the JWT in an httpOnly cookie.
  * The browser only ever receives the user profile, never the token.
+ * `me` (profile update) sends the current token and swaps in the fresh one Spring returns.
  */
-export async function startSession(action: "login" | "register", request: Request) {
+export async function startSession(action: "login" | "register" | "phone" | "me", request: Request, currentToken?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
+  if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
   let upstream: Response;
   try {
     upstream = await fetch(`${BACKEND_URL}/api/auth/${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      method: action === "me" ? "PUT" : "POST",
+      headers,
       body: await request.text(),
       cache: "no-store",
     });

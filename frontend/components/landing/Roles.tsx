@@ -21,7 +21,7 @@ const roles = [
     photo: photos.donor,
     points: [
       "List surplus food in under a minute: what it is, how much, and when it expires.",
-      "See who claimed it and how far away they are.",
+      "Accept a collector's request or offer it to the best match, then see how far away they are.",
       "Follow the pickup live on a map until it is collected.",
       "Get a delivery confirmation and see how many servings you saved.",
     ],
@@ -35,7 +35,7 @@ const roles = [
     points: [
       "Browse nearby donations, sorted by how soon they expire.",
       "See why a pickup suits you: distance, time left and match score.",
-      "Claim it, then share your location only while the trip is active.",
+      "Ask for it or accept an offer, then share your location only while the trip is active.",
       "Update status in one tap: arrived, picked up, in transit, delivered.",
     ],
   },
