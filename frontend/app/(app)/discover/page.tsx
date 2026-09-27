@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { EmptyState, TimeLeft } from "@/components/app/bits";
 import { DiscoverFilters, type DiscoverParams } from "@/components/discover/DiscoverFilters";
@@ -9,6 +10,12 @@ import { categoryLabel } from "@/lib/format";
 import { serverApi } from "@/lib/server-api";
 import { requireSession } from "@/lib/session";
 import type { Donation, User } from "@/lib/types";
+
+function requestLabel(d: Donation) {
+  const r = d.myRequest;
+  if (r?.status !== "PENDING") return "View and request";
+  return r.direction === "OFFER" ? "Offered to you" : "Requested";
+}
 
 export const metadata: Metadata = { title: "Discover | FoodRescue" };
 
@@ -95,7 +102,12 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/discove
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
+                  {d.imageUrl && (
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-sage">
+                      <Image src={d.imageUrl} alt="" fill sizes="64px" className="object-cover" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-lg font-medium">{d.foodName}</p>
                     <p className="text-sm text-muted">
                       {d.servings} servings, {categoryLabel[d.category].toLowerCase()}, {d.dietary === "VEG" ? "veg" : "non-veg"}
@@ -114,9 +126,22 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/discove
                 </div>
                 <FoodSafetyBadges preparedAt={d.preparedAt} requiresRefrigeration={d.requiresRefrigeration} />
                 {d.match && <MatchBreakdown match={d.match} compact />}
+                {d.match && !d.match.deliverable && (
+                  <p className="text-sm text-accent">Your centre is closed until after this expires.</p>
+                )}
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3">
                   <TimeLeft minutes={d.minutesToExpiry} urgency={d.urgency} />
-                  <span className="text-sm font-medium">View and claim</span>
+                  <span
+                    className={`text-sm font-medium ${
+                      d.myRequest?.status === "PENDING"
+                        ? d.myRequest.direction === "OFFER"
+                          ? "rounded-full bg-accent px-2.5 py-0.5 text-on-accent"
+                          : "rounded-full bg-sage px-2.5 py-0.5"
+                        : ""
+                    }`}
+                  >
+                    {requestLabel(d)}
+                  </span>
                 </div>
               </Link>
             </li>

@@ -4,6 +4,7 @@ import com.foodrescue.dto.*;
 import com.foodrescue.entity.*;
 import com.foodrescue.exception.ApiException;
 import com.foodrescue.repository.DonationRepository;
+import com.foodrescue.repository.MatchRequestRepository;
 import com.foodrescue.repository.PickupRepository;
 import com.foodrescue.repository.UserRepository;
 import com.foodrescue.security.CurrentUser;
@@ -36,13 +37,17 @@ public class DonationService {
     private final PickupRepository pickups;
     private final UserRepository users;
     private final MatchingService matching;
+    private final MatchRequestRepository matchRequests;
+    private final PhotoStorageService photos;
 
-    public DonationService(DonationRepository donations, PickupRepository pickups,
-                           UserRepository users, MatchingService matching) {
+    public DonationService(DonationRepository donations, PickupRepository pickups, UserRepository users,
+                           MatchingService matching, MatchRequestRepository matchRequests, PhotoStorageService photos) {
         this.donations = donations;
         this.pickups = pickups;
         this.users = users;
         this.matching = matching;
+        this.matchRequests = matchRequests;
+        this.photos = photos;
     }
 
     @Transactional
@@ -61,6 +66,9 @@ public class DonationService {
             if (req.preparedAt().isBefore(now.minus(MAX_PREPARED_AGE))) {
                 throw ApiException.badRequest("Food cooked more than 2 days ago can't be donated.");
             }
+        }
+        if (req.imageUrl() != null && !photos.isOwnUpload(req.imageUrl(), caller.id())) {
+            throw ApiException.badRequest("Upload the photo through FoodRescue before attaching it.");
         }
         User donor = users.getReferenceById(caller.id());
         Donation d = new Donation(donor, req.foodName().trim(), req.category(), req.dietary(),
@@ -98,6 +106,8 @@ public class DonationService {
         Double originLng = f.lng() != null ? f.lng() : me.getLongitude();
         boolean scoreForCaller = caller.role().isCollector();
         Map<UUID, Pickup> activePickups = activePickupsFor(source);
+        Map<UUID, MatchRequest> myRequests = scoreForCaller ? latestRequestsFor(caller.id(), source) : Map.of();
+        Map<UUID, Long> pendingCounts = caller.role() == Role.DONOR ? pendingRequestCounts(caller.id()) : Map.of();
 
         Comparator<DonationResponse> order = switch (f.sort() == null ? Sort.EXPIRY : f.sort()) {
             case EXPIRY -> Comparator.comparing(DonationResponse::expiryTime);
@@ -111,7 +121,8 @@ public class DonationService {
                     Double km = originLat == null || originLng == null ? null
                             : Geo.round1(Geo.distanceKm(originLat, originLng, d.getPickupLat(), d.getPickupLng()));
                     MatchResult match = scoreForCaller ? matching.score(d, me, now) : null;
-                    return Mapper.donation(d, now, km, match, activePickups.get(d.getId()));
+                    return Mapper.donation(d, now, km, match, activePickups.get(d.getId()),
+                            Mapper.ref(myRequests.get(d.getId()), now), pendingCounts.getOrDefault(d.getId(), 0L).intValue());
                 })
                 .filter(r -> statusFilter == null || r.status() == statusFilter)
                 .filter(r -> f.category() == null || r.category() == f.category())
@@ -132,7 +143,11 @@ public class DonationService {
                 : null;
         MatchResult match = caller.role().isCollector() ? matching.score(d, me, now) : null;
         Pickup active = pickups.findFirstByDonationIdAndStatusIn(id, ACTIVE_PICKUP).orElse(null);
-        return Mapper.donation(d, now, km, match, active);
+        MatchRequest mine = caller.role().isCollector() ? latestRequestsFor(caller.id(), List.of(d)).get(id) : null;
+        int pending = d.getDonor().getId().equals(caller.id())
+                ? pendingRequestCounts(caller.id()).getOrDefault(id, 0L).intValue()
+                : 0;
+        return Mapper.donation(d, now, km, match, active, Mapper.ref(mine, now), pending);
     }
 
     @Transactional
@@ -145,7 +160,9 @@ public class DonationService {
                     + d.effectiveStatus(now).name().toLowerCase(Locale.ROOT).replace('_', ' ') + ".");
         }
         d.setStatus(DonationStatus.CANCELLED);
-        return Mapper.donation(d, now, null, null, null);
+        donations.flush();
+        matchRequests.closePending(id, now);
+        return Mapper.donation(find(id), now, null, null, null);
     }
 
     @Transactional(readOnly = true)
@@ -153,8 +170,13 @@ public class DonationService {
         Instant now = Instant.now();
         Donation d = find(id);
         requireOwnerOrAdmin(caller, d);
+        Map<UUID, MatchRequest> open = matchRequests.findByDonationIdAndStatus(id, MatchRequestStatus.PENDING).stream()
+                .collect(Collectors.toMap(r -> r.getCollector().getId(), Function.identity(), (a, b) -> a));
+        // Homes and centres that stay closed until the food expires can't receive it, so they are left out.
         return users.findByRoleInAndLatitudeIsNotNullAndLongitudeIsNotNull(EnumSet.of(Role.VOLUNTEER, Role.NGO)).stream()
-                .map(c -> new CollectorMatch(PersonSummary.from(c), c.getCapacityServings(), matching.score(d, c, now)))
+                .map(c -> new CollectorMatch(PersonSummary.from(c), c.getCapacityServings(), matching.score(d, c, now),
+                        Mapper.ref(open.get(c.getId()), now)))
+                .filter(m -> m.match().deliverable())
                 .sorted(Comparator.comparingInt((CollectorMatch m) -> m.match().score()).reversed())
                 .limit(MAX_MATCHES)
                 .toList();
@@ -165,6 +187,19 @@ public class DonationService {
         List<UUID> ids = source.stream().map(Donation::getId).toList();
         return pickups.findByDonationIdInAndStatusIn(ids, ACTIVE_PICKUP).stream()
                 .collect(Collectors.toMap(p -> p.getDonation().getId(), Function.identity(), (a, b) -> a));
+    }
+
+    /** Newest request or offer per donation between this collector and the given donations. */
+    private Map<UUID, MatchRequest> latestRequestsFor(UUID collectorId, List<Donation> source) {
+        if (source.isEmpty()) return Map.of();
+        List<UUID> ids = source.stream().map(Donation::getId).toList();
+        return matchRequests.findByCollectorIdAndDonationIdInOrderByCreatedAtDesc(collectorId, ids).stream()
+                .collect(Collectors.toMap(r -> r.getDonation().getId(), Function.identity(), (newer, older) -> newer));
+    }
+
+    private Map<UUID, Long> pendingRequestCounts(UUID donorId) {
+        return matchRequests.countPendingRequestsForDonor(donorId).stream()
+                .collect(Collectors.toMap(DonationCount::donationId, DonationCount::count));
     }
 
     private Donation find(UUID id) {

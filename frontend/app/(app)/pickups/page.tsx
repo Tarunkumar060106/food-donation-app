@@ -24,7 +24,7 @@ export default async function MyPickupsPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">My pickups</h1>
           <p className="mt-2 text-muted">
-            {servings > 0 ? `You've delivered ${servings} servings so far.` : "Pickups you claim show up here."}
+            {servings > 0 ? `You've delivered ${servings} servings so far.` : "Pickups show up here once a donor accepts your request."}
           </p>
         </div>
         <Link href="/discover" className={primaryButton}>
@@ -36,7 +36,7 @@ export default async function MyPickupsPage() {
       <section className="grid gap-5">
         <SectionHeader title="In progress" />
         {active.length === 0 ? (
-          <EmptyState title="Nothing in progress" body="Claim a donation from the feed and your trip will appear here." />
+          <EmptyState title="Nothing in progress" body="Request food from the feed. Once the donor accepts, your trip appears here." />
         ) : (
           <ul className="grid gap-4 md:grid-cols-2">
             {active.map((p) => (

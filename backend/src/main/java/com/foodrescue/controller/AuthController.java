@@ -1,11 +1,9 @@
 package com.foodrescue.controller;
 
-import com.foodrescue.dto.AuthResponse;
-import com.foodrescue.dto.LoginRequest;
-import com.foodrescue.dto.RegisterRequest;
-import com.foodrescue.dto.UserResponse;
+import com.foodrescue.dto.*;
 import com.foodrescue.security.CurrentUser;
 import com.foodrescue.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -35,8 +33,21 @@ public class AuthController {
         return auth.login(req);
     }
 
+    @PostMapping("/phone")
+    @Operation(summary = "Sign in with a verified phone number",
+            description = "Pass the user_json_url from the Phone.email button. Creates a one-time donor account for new numbers.")
+    public AuthResponse phone(@Valid @RequestBody PhoneLoginRequest req) {
+        return auth.phoneLogin(req);
+    }
+
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
         return auth.me(CurrentUser.from(jwt).id());
+    }
+
+    @PutMapping("/me")
+    @Operation(summary = "Update my profile", description = "Returns a fresh token because the token carries the display name.")
+    public AuthResponse updateMe(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateProfileRequest req) {
+        return auth.updateProfile(CurrentUser.from(jwt).id(), req);
     }
 }

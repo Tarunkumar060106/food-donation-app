@@ -7,6 +7,7 @@ import com.foodrescue.entity.Donation;
 import com.foodrescue.entity.User;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.Locale;
  * Transparent weighted score (PRD section 7): urgency 40, distance 30, capacity 20, food fit 10.
  * Food fit covers dietary compatibility and, for refrigerated food, whether the collector has a cool box.
  * Each signal is normalised to 0..1 and multiplied by its weight, so the parts add up to the total.
+ * Opening hours are a separate yes/no check: a home that stays closed until the food expires can't receive it.
  */
 @Service
 public class MatchingService {
@@ -35,6 +37,11 @@ public class MatchingService {
 
     /** Refrigerated food with a collector who can't keep it cold: still allowed, but ranked well below one who can. */
     static final double NO_COOL_BOX_FOOD_SCORE = 0.25;
+
+    /** Rough city trip estimate for the opening-hours check: fixed handling time plus a round trip at 20 km/h. */
+    static final long HANDLING_MINUTES = 10;
+    static final double MINUTES_PER_KM = 3;
+    static final long UNKNOWN_TRIP_MINUTES = 30;
 
     public MatchResult score(Donation donation, User collector, Instant now) {
         long minutesLeft = donation.minutesToExpiry(now);
@@ -83,7 +90,28 @@ public class MatchingService {
         }
         reasons.add("expires in " + formatMinutes(minutesLeft));
 
-        return new MatchResult(total, km == null ? null : Geo.round1(km), minutesLeft, parts, String.join(", ", reasons));
+        OpeningHours hours = OpeningHours.of(collector);
+        boolean deliverable = true;
+        String hoursNote = null;
+        if (hours != null) {
+            Instant arrival = now.plus(Duration.ofMinutes(tripMinutes(km)));
+            deliverable = hours.openDuring(arrival, donation.getExpiryTime());
+            if (!deliverable) {
+                hoursNote = "Closed until after the food expires";
+            } else if (hours.isOpenAt(now)) {
+                hoursNote = "Open now, " + hours.label();
+            } else {
+                hoursNote = "Opens at " + OpeningHours.time(hours.nextOpening(now)) + ", " + hours.label();
+            }
+            reasons.add(deliverable ? hoursNote.toLowerCase(Locale.ROOT).replace(", ", " (") + ")" : "closed until after the food expires");
+        }
+
+        return new MatchResult(total, km == null ? null : Geo.round1(km), minutesLeft, parts, String.join(", ", reasons),
+                deliverable, hoursNote);
+    }
+
+    static long tripMinutes(Double km) {
+        return km == null ? UNKNOWN_TRIP_MINUTES : HANDLING_MINUTES + Math.round(2 * km * MINUTES_PER_KM);
     }
 
     static String formatMinutes(long minutes) {

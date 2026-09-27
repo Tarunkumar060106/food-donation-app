@@ -98,7 +98,7 @@ export default async function OperationsPage() {
             </p>
           )}
           {active.length === 0 ? (
-            <EmptyState title="No pickups in progress" body="When a collector claims a donation, it shows up here." />
+            <EmptyState title="No pickups in progress" body="When a donor and a collector agree on a pickup, it shows up here." />
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
               {active.map((p) => {
@@ -138,7 +138,7 @@ export default async function OperationsPage() {
         <section className="grid content-start gap-5 lg:col-span-5">
           <SectionHeader title="Expiring soon" />
           {expiringSoon.length === 0 ? (
-            <EmptyState title="Nothing about to expire" body="Unclaimed food with less than 3 hours left appears here." />
+            <EmptyState title="Nothing about to expire" body="Unmatched food with less than 3 hours left appears here." />
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
               {expiringSoon.map((d) => (

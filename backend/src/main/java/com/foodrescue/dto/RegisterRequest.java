@@ -3,6 +3,8 @@ package com.foodrescue.dto;
 import com.foodrescue.entity.Role;
 import jakarta.validation.constraints.*;
 
+import java.time.LocalTime;
+
 public record RegisterRequest(
         @NotBlank @Size(max = 120) String name,
         @NotBlank @Email @Size(max = 160) String email,
@@ -16,6 +18,8 @@ public record RegisterRequest(
         Boolean hasCoolBox,
         @Size(max = 120) String organizationName,
         @Size(max = 40) String organizationType,
-        @Size(max = 255) String address
+        @Size(max = 255) String address,
+        LocalTime opensAt,
+        LocalTime closesAt
 ) {
 }
