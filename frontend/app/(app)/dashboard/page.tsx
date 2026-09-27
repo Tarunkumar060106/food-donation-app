@@ -6,7 +6,7 @@ import { primaryButton } from "@/components/ui/form";
 import { categoryLabel, greeting, numberFormat, statusLabel, timeAgo } from "@/lib/format";
 import { serverApi } from "@/lib/server-api";
 import { requireSession } from "@/lib/session";
-import type { DashboardSummary, Donation, Pickup, Session } from "@/lib/types";
+import type { DashboardSummary, Donation, MatchRequest, Pickup, Session } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Dashboard | FoodRescue" };
 
@@ -14,9 +14,23 @@ export default async function DashboardPage() {
   const session = await requireSession();
   const summary = await serverApi<DashboardSummary>("/dashboard/summary");
   const firstName = session.name.split(" ")[0];
+  const waiting =
+    session.role === "ADMIN" ? 0 : (await serverApi<MatchRequest[]>("/match-requests")).filter((r) => r.awaitingMe).length;
 
   return (
     <div className="grid gap-12">
+      {waiting > 0 && (
+        <Link
+          href="/requests"
+          className="-mb-4 flex items-center justify-between gap-4 rounded-2xl border border-accent/40 bg-accent/10 px-5 py-4 transition hover:border-accent"
+        >
+          <p className="font-medium">
+            {waiting} {session.role === "DONOR" ? "pickup request" : "food offer"}
+            {waiting > 1 ? "s are" : " is"} waiting for your answer
+          </p>
+          <ArrowRightIcon size={18} aria-hidden />
+        </Link>
+      )}
       {session.role === "DONOR" && <DonorDashboard firstName={firstName} summary={summary} />}
       {(session.role === "VOLUNTEER" || session.role === "NGO") && (
         <CollectorDashboard firstName={firstName} summary={summary} session={session} />
@@ -119,13 +133,13 @@ async function CollectorDashboard({ firstName, summary, session }: { firstName: 
         <StatTile emphasis label="Servings delivered" value={numberFormat.format(summary.servingsRescued)} />
         <StatTile label="Deliveries completed" value={numberFormat.format(summary.completedDeliveries)} />
         <StatTile label="Active pickups" value={numberFormat.format(summary.activePickups)} />
-        <StatTile label="Pickups claimed" value={numberFormat.format(summary.totalDonations)} />
+        <StatTile label="Pickups taken on" value={numberFormat.format(summary.totalDonations)} />
       </div>
 
       <section className="grid gap-5">
         <SectionHeader title="Your active pickups" href="/pickups" linkLabel="All pickups" />
         {active.length === 0 ? (
-          <EmptyState title="No active pickups" body="Claim a donation from the feed and it will show up here." />
+          <EmptyState title="No active pickups" body="Request food from the feed. Once the donor accepts, the pickup shows up here." />
         ) : (
           <ul className="grid gap-4 md:grid-cols-2">
             {active.map((p) => (
@@ -202,7 +216,7 @@ async function AdminDashboard({ firstName, summary }: { firstName: string; summa
         <section className="grid content-start gap-5 lg:col-span-8">
           <SectionHeader title="Pickups in progress" href="/admin" linkLabel="Operations" />
           {active.length === 0 ? (
-            <EmptyState title="No active pickups" body="When a volunteer claims a donation, it appears here." />
+            <EmptyState title="No active pickups" body="When you accept a request or a collector accepts your offer, the pickup appears here." />
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
               {active.map((p) => (

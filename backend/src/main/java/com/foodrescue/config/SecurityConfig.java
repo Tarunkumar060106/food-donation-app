@@ -41,12 +41,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // The original request was already authorized; SSE completion re-dispatches without it.
                         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/phone").permitAll()
                         .requestMatchers("/actuator/health", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Role checks for endpoints with a request body run here, before body validation,
                         // so a wrong role gets 403 rather than field errors. @PreAuthorize repeats them.
-                        .requestMatchers(HttpMethod.POST, "/api/donations").hasRole("DONOR")
+                        .requestMatchers(HttpMethod.POST, "/api/donations", "/api/donations/*/offers", "/api/uploads/**").hasRole("DONOR")
+                        .requestMatchers(HttpMethod.POST, "/api/donations/*/requests").hasAnyRole("VOLUNTEER", "NGO")
                         .requestMatchers(HttpMethod.PATCH, "/api/pickups/*/sharing").hasAnyRole("VOLUNTEER", "NGO")
                         .requestMatchers(HttpMethod.POST, "/api/pickups/*/location").hasAnyRole("VOLUNTEER", "NGO")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -95,7 +96,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource(AppProperties props) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(props.cors().allowedOrigins());
-        config.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

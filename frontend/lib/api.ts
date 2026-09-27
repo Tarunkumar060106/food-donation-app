@@ -28,9 +28,16 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
   return parse<T>(res);
 }
 
-export async function session<T>(action: "login" | "signup" | "logout", body?: unknown): Promise<T> {
+/** Multipart upload through the same relay. The browser sets the multipart boundary itself. */
+export async function upload<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`/api/backend${path}`, { method: "POST", body: form });
+  return parse<T>(res);
+}
+
+/** Calls that return a new token go through /api/session so it lands in the httpOnly cookie. */
+export async function session<T>(action: "login" | "signup" | "logout" | "phone" | "profile", body?: unknown): Promise<T> {
   const res = await fetch(`/api/session/${action}`, {
-    method: "POST",
+    method: action === "profile" ? "PUT" : "POST",
     headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });

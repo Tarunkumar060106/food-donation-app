@@ -17,7 +17,8 @@ export type Organization = { id: string; name: string; type: string; address: st
 export type User = {
   id: string;
   name: string;
-  email: string;
+  /** Null for donors who sign in with their phone number. */
+  email: string | null;
   role: Role;
   phone: string | null;
   latitude: number | null;
@@ -25,6 +26,10 @@ export type User = {
   capacityServings: number | null;
   acceptsNonVeg: boolean;
   hasCoolBox: boolean;
+  /** IST wall-clock "HH:mm:ss"; both null means always open. */
+  opensAt: string | null;
+  closesAt: string | null;
+  phoneVerified: boolean;
   organization: Organization | null;
   createdAt: string;
 };
@@ -39,11 +44,50 @@ export type MatchResult = {
   minutesToExpiry: number;
   breakdown: ScoreComponent[];
   reason: string;
+  /** False when the collector's home is closed from the earliest arrival until the food expires. */
+  deliverable: boolean;
+  hoursNote: string | null;
 };
 
-export type CollectorMatch = { collector: Person; capacityServings: number | null; match: MatchResult };
+export type MatchDirection = "REQUEST" | "OFFER";
+export type MatchRequestStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "CLOSED";
+export type MatchRequestRef = { id: string; direction: MatchDirection; status: MatchRequestStatus };
 
-export type PickupSummary ={ id: string; status: PickupStatus; collector: Person; claimedAt: string };
+export type CollectorMatch = {
+  collector: Person;
+  capacityServings: number | null;
+  match: MatchResult;
+  pendingOffer: MatchRequestRef | null;
+};
+
+export type MatchRequest = {
+  id: string;
+  direction: MatchDirection;
+  status: MatchRequestStatus;
+  message: string | null;
+  donation: {
+    id: string;
+    foodName: string;
+    servings: number;
+    status: DonationStatus;
+    pickupDeadline: string;
+    expiryTime: string;
+    pickupAddress: string;
+    requiresRefrigeration: boolean;
+    imageUrl: string | null;
+  };
+  collector: Person;
+  donor: Person;
+  collectorCapacity: number | null;
+  match: MatchResult | null;
+  awaitingMe: boolean;
+  sentByMe: boolean;
+  pickupId: string | null;
+  createdAt: string;
+  respondedAt: string | null;
+};
+
+export type PickupSummary = { id: string; status: PickupStatus; collector: Person; claimedAt: string };
 
 export type Donation = {
   id: string;
@@ -68,6 +112,10 @@ export type Donation = {
   match: MatchResult | null;
   donor: Person;
   activePickup: PickupSummary | null;
+  /** Collectors: their latest request or offer on this donation. */
+  myRequest: MatchRequestRef | null;
+  /** Donor: collector requests waiting for an answer. */
+  pendingRequests: number;
   createdAt: string;
 };
 

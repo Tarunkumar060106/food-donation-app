@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon, ArrowRightIcon, CheckCircleIcon } from "@phosphor-icons/react/ssr";
 import { LiveCountdown } from "@/components/app/LiveCountdown";
 import { EmptyState, StatusBadge } from "@/components/app/bits";
 import { CancelDonation } from "@/components/donations/CancelDonation";
-import { ClaimPanel } from "@/components/donations/ClaimPanel";
+import { RequestPanel } from "@/components/donations/RequestPanel";
 import { FoodSafetyBadges } from "@/components/donations/FoodSafetyBadges";
 import { MatchBreakdown } from "@/components/donations/MatchBreakdown";
 import { PointsMap } from "@/components/map";
+import { OfferButton } from "@/components/requests/OfferButton";
+import { RequestCard } from "@/components/requests/RequestCard";
 import { primaryButton } from "@/components/ui/form";
 import { categoryLabel, roleLabel, statusLabel } from "@/lib/format";
 import { ApiError, serverApi } from "@/lib/server-api";
 import { APP_TIME_ZONE_LABEL, formatDateTime } from "@/lib/time";
 import { requireSession } from "@/lib/session";
-import type { CollectorMatch, Donation, Session } from "@/lib/types";
+import type { CollectorMatch, Donation, MatchRequest, Session } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Donation | FoodRescue" };
 
@@ -34,7 +37,13 @@ export default async function DonationPage({ params }: PageProps<"/donations/[id
   const isOwner = session.role === "DONOR" && d.donor.id === session.userId;
   const manages = isOwner || session.role === "ADMIN";
   const isCollector = session.role === "VOLUNTEER" || session.role === "NGO";
-  const matches = manages && d.status === "AVAILABLE" ? await serverApi<CollectorMatch[]>(`/donations/${id}/matches`) : [];
+  const available = manages && d.status === "AVAILABLE";
+  const [matches, requests] = available
+    ? await Promise.all([
+        serverApi<CollectorMatch[]>(`/donations/${id}/matches`),
+        serverApi<MatchRequest[]>(`/match-requests?donationId=${id}`),
+      ])
+    : [[], []];
 
   const back = isOwner
     ? { href: "/donations", label: "My donations" }
@@ -86,6 +95,12 @@ export default async function DonationPage({ params }: PageProps<"/donations/[id
             </dl>
           </div>
 
+          {d.imageUrl && (
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-line bg-sage">
+              <Image src={d.imageUrl} alt={`Photo of ${d.foodName}`} fill sizes="(min-width: 1024px) 55vw, 100vw" className="object-cover" />
+            </div>
+          )}
+
           <div className="relative z-0 aspect-[16/10] overflow-hidden rounded-2xl border border-line">
             <PointsMap points={[{ lat: d.pickupLat, lng: d.pickupLng, label: "Pickup spot", variant: "pickup" }]} />
           </div>
@@ -116,7 +131,7 @@ export default async function DonationPage({ params }: PageProps<"/donations/[id
 
         <aside className="grid content-start gap-6 lg:col-span-5">
           {isCollector && <CollectorSide donation={d} session={session} />}
-          {manages && <ManagerSide donation={d} matches={matches} />}
+          {manages && <ManagerSide donation={d} matches={matches} requests={requests} canOffer={isOwner} viewer={session.role} />}
         </aside>
       </div>
     </div>
@@ -124,7 +139,7 @@ export default async function DonationPage({ params }: PageProps<"/donations/[id
 }
 
 function CollectorSide({ donation: d, session }: { donation: Donation; session: Session }) {
-  if (d.status === "AVAILABLE") return <ClaimPanel donation={d} />;
+  if (d.status === "AVAILABLE") return <RequestPanel donation={d} />;
   if (d.activePickup?.collector.id === session.userId) {
     return (
       <div className="grid gap-4 rounded-2xl bg-forest p-6 text-on-forest sm:p-8">
@@ -139,7 +154,7 @@ function CollectorSide({ donation: d, session }: { donation: Donation; session: 
   }
   return (
     <EmptyState
-      title={d.status === "EXPIRED" ? "This donation expired" : d.status === "CANCELLED" ? "The donor cancelled this" : "Already claimed"}
+      title={d.status === "EXPIRED" ? "This donation expired" : d.status === "CANCELLED" ? "The donor cancelled this" : "Already matched"}
       body={d.status === "EXPIRED" || d.status === "CANCELLED" ? "It's no longer available." : "Someone else is collecting it. There's more food waiting in the feed."}
       action={
         <Link href="/discover" className={primaryButton}>
@@ -150,7 +165,20 @@ function CollectorSide({ donation: d, session }: { donation: Donation; session: 
   );
 }
 
-function ManagerSide({ donation: d, matches }: { donation: Donation; matches: CollectorMatch[] }) {
+function ManagerSide({
+  donation: d,
+  matches,
+  requests,
+  canOffer,
+  viewer,
+}: {
+  donation: Donation;
+  matches: CollectorMatch[];
+  requests: MatchRequest[];
+  canOffer: boolean;
+  viewer: Session["role"];
+}) {
+  const incoming = requests.filter((r) => r.status === "PENDING" && r.direction === "REQUEST");
   if (d.activePickup) {
     return (
       <div className="grid gap-4 rounded-2xl bg-forest p-6 text-on-forest sm:p-8">
@@ -183,13 +211,33 @@ function ManagerSide({ donation: d, matches }: { donation: Donation; matches: Co
   }
   return (
     <>
+      {incoming.length > 0 && (
+        <section className="grid gap-4">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">
+              Requests <span className="ml-1 rounded-full bg-accent px-2 py-0.5 align-middle text-sm text-on-accent">{incoming.length}</span>
+            </h2>
+            <p className="mt-1 text-sm text-muted">Accept one and the pickup starts. The others are closed for you.</p>
+          </div>
+          <ul className="grid gap-3">
+            {incoming.map((r) => (
+              <li key={r.id}>
+                <RequestCard request={r} viewer={viewer} showFood={false} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="grid gap-4">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Best matches nearby</h2>
-          <p className="mt-1 text-sm text-muted">Ranked by urgency, distance, capacity and food fit. Any of them can claim it from their feed.</p>
+          <p className="mt-1 text-sm text-muted">
+            Ranked by urgency, distance, capacity and food fit. Homes that are closed until the food expires are left out.
+            {canOffer && " Offer it and they can accept, or wait for someone to ask."}
+          </p>
         </div>
         {matches.length === 0 ? (
-          <EmptyState title="No collectors nearby yet" body="Volunteers and NGOs with a saved location will appear here." />
+          <EmptyState title="No collectors nearby yet" body="Volunteers and NGOs with a saved location and open hours will appear here." />
         ) : (
           <ol className="grid gap-3">
             {matches.slice(0, 5).map((m, i) => (
@@ -202,7 +250,10 @@ function ManagerSide({ donation: d, matches }: { donation: Donation; matches: Co
                     </p>
                     <p className="text-sm text-muted">{m.match.reason.replace(/^\d+% match, /, "")}</p>
                   </div>
-                  <span className="font-mono text-xl font-medium tabular-nums">{m.match.score}%</span>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="font-mono text-xl font-medium tabular-nums">{m.match.score}%</span>
+                    {canOffer && <OfferButton donationId={d.id} match={m} />}
+                  </div>
                 </div>
                 <MatchBreakdown match={m.match} compact />
               </li>

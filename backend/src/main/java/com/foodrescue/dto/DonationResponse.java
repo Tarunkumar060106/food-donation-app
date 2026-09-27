@@ -7,6 +7,10 @@ import com.foodrescue.entity.FoodCategory;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * @param myRequest       for collectors: their latest request or offer on this donation
+ * @param pendingRequests for the donor: collector requests waiting for an answer
+ */
 public record DonationResponse(
         UUID id,
         String foodName,
@@ -30,6 +34,8 @@ public record DonationResponse(
         MatchResult match,
         PersonSummary donor,
         PickupSummary activePickup,
+        MatchRequestRef myRequest,
+        int pendingRequests,
         Instant createdAt
 ) {
 }

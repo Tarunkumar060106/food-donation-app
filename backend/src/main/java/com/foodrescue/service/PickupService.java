@@ -44,21 +44,21 @@ public class PickupService {
         this.events = events;
     }
 
+    /**
+     * Starts the pickup once both sides have agreed. The conditional update makes this atomic,
+     * so if two acceptances race for the same food only one of them wins.
+     */
     @Transactional
-    public PickupResponse claim(CurrentUser caller, UUID donationId) {
-        Instant now = Instant.now();
+    public Pickup startPickup(UUID donationId, UUID collectorId, Instant now) {
         if (donations.claimIfAvailable(donationId, now) == 0) {
             throw claimRejection(donationId, now);
         }
+        // The claim cleared the persistence context, so load everything fresh from here on.
         Donation donation = donations.findById(donationId).orElseThrow(() -> ApiException.notFound("Donation"));
-        User collector = users.findById(caller.id())
-                .orElseThrow(() -> ApiException.unauthorized("This account no longer exists."));
+        User collector = users.findById(collectorId).orElseThrow(() -> ApiException.notFound("Collector"));
         Pickup pickup = pickups.saveAndFlush(new Pickup(donation, collector, now));
-
-        notifications.notify(donation.getDonor(), NotificationType.DONATION_CLAIMED,
-                "Your donation was claimed",
-                collector.getName() + " will collect \"" + donation.getFoodName() + "\".");
-        return publish(pickup);
+        publish(pickup);
+        return pickup;
     }
 
     @Transactional
@@ -168,7 +168,7 @@ public class PickupService {
         if (d.getStatus() == DonationStatus.AVAILABLE && !d.getPickupDeadline().isAfter(now)) {
             return ApiException.conflict("The pickup deadline for this donation has passed.");
         }
-        return ApiException.conflict("Someone else already claimed this donation.");
+        return ApiException.conflict("This food is already matched with another collector.");
     }
 
     /** A cancelled pickup hands the food back to the feed, unless it can no longer be collected in time. */
