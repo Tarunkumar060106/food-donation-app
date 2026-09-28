@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
       "port": 3000
+    },
+    {
+      "name": "deck",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["presentation/serve.mjs"],
+      "port": 5679
     }
   ]
 }

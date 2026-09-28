@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FoodRescue — Vision2Web Pitch Deck</title>
+
+<!-- Fonts: Outfit + JetBrains Mono (the live app's own type system) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   CSS CUSTOM PROPERTIES (THEME)
+   Tokens copied 1:1 from the live app's globals.css
+   so the deck and the product look like one thing.
+   =========================================== */
+:root {
+    --bg:#f4f6f2; --surface:#fbfcfa; --sage:#e2eadf; --ink:#14231c; --muted:#56665d;
+    --line:#d6ded4; --forest:#1c3528; --forest-2:#24493a; --on-forest:#e9f0ea;
+    --accent:#c8461f; --accent-hover:#ae3b18; --on-accent:#fbfcfa;
+
+    --font-display:'Outfit', sans-serif;
+    --font-body:'Outfit', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-normal: 0.7s;
+
+    --stage-bg: var(--bg);
+    --slide-bg: var(--bg);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font-body); color:var(--ink); }
+
+/* ===========================================
+   FIXED 16:9 STAGE — mandatory base (viewport-base.css)
+   =========================================== */
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg,#fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:hidden; opacity:0; pointer-events:none; background:var(--slide-bg,#fff); }
+.slide.active, .slide.visible { visibility:visible; opacity:1; pointer-events:auto; z-index:1; }
+img, video, canvas, svg { max-width:100%; max-height:100%; }
+.deck-controls { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:1000; }
+@media print {
+    html, body { width:1920px; height:auto; overflow:visible; background:#fff; }
+    .deck-viewport { position:static; overflow:visible; background:#fff; }
+    .deck-stage { position:static; width:auto; height:auto; transform:none !important; background:none; }
+    .slide { position:relative; display:block !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important; width:1920px; height:1080px; break-after:page; page-break-after:always; }
+    .slide:last-child { break-after:auto; page-break-after:auto; }
+    .deck-controls { display:none !important; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.2s !important; } }
+
+/* ===========================================
+   REVEAL ANIMATIONS — triggered by .slide.visible
+   =========================================== */
+.reveal { opacity:0; transform:translateY(30px); transition:opacity var(--duration-normal) var(--ease-out-expo), transform var(--duration-normal) var(--ease-out-expo); }
+.slide.visible .reveal { opacity:1; transform:translateY(0); }
+.slide.visible .r1{transition-delay:.05s}.slide.visible .r2{transition-delay:.15s}.slide.visible .r3{transition-delay:.25s}
+.slide.visible .r4{transition-delay:.35s}.slide.visible .r5{transition-delay:.45s}.slide.visible .r6{transition-delay:.55s}
+.slide.visible .r7{transition-delay:.65s}.slide.visible .r8{transition-delay:.75s}
+
+/* ===========================================
+   SHARED SLIDE CHROME
+   =========================================== */
+.brandmark { position:absolute; top:64px; left:140px; display:flex; align-items:center; gap:12px; z-index:5; }
+.brandmark .mark { width:30px; height:30px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; }
+.brandmark .mark svg { width:16px; height:16px; }
+.brandmark span { font-weight:700; font-size:20px; letter-spacing:-0.01em; color:var(--ink); }
+.slide-dark .brandmark span { color:var(--on-forest); }
+
+.kicker { position:absolute; top:70px; right:140px; font-family:var(--font-mono); font-size:15px; color:var(--muted); letter-spacing:0.05em; z-index:5; }
+.slide-dark .kicker { color:var(--muted); }
+
+.eyebrow { display:flex; align-items:center; gap:14px; margin-bottom:28px; }
+.eyebrow .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex:none; }
+.eyebrow span { font-size:16px; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+
+.pad { padding:190px 140px 120px; height:100%; position:relative; }
+
+h1.hero-title { font-size:96px; line-height:1.04; font-weight:800; letter-spacing:-0.02em; color:var(--ink); margin-bottom:30px; }
+h2.slide-title { font-size:64px; line-height:1.08; font-weight:800; letter-spacing:-0.02em; color:var(--ink); margin-bottom:24px; max-width:1250px; }
+.accent { color:var(--accent); }
+.sub { font-size:24px; line-height:1.55; color:var(--muted); max-width:680px; }
+
+.pill { display:inline-flex; align-items:center; gap:12px; background:var(--forest); color:var(--on-forest); padding:14px 28px; border-radius:999px; font-size:18px; font-weight:600; }
+
+/* screenshot frame: mock browser chrome so real product shots feel curated, not pasted */
+.shot-frame { background:var(--surface); border:1px solid var(--line); border-radius:22px; box-shadow:0 40px 80px -30px rgba(20,35,28,0.28); overflow:hidden; }
+.shot-frame .chrome { height:40px; display:flex; align-items:center; gap:8px; padding:0 18px; background:var(--sage); border-bottom:1px solid var(--line); }
+.shot-frame .chrome i { width:10px; height:10px; border-radius:50%; background:var(--line); display:block; }
+.shot-frame .chrome i:nth-child(1){background:#e2a08a;} .shot-frame .chrome i:nth-child(2){background:#e6cf9a;} .shot-frame .chrome i:nth-child(3){background:#a9c9ac;}
+.shot-frame img { display:block; width:100%; height:auto; }
+
+.step-num { font-family:var(--font-mono); font-size:20px; color:var(--accent); font-weight:600; }
+
+.deck-footer-note { position:absolute; bottom:64px; left:140px; font-family:var(--font-mono); font-size:15px; color:var(--muted); z-index:5; }
+.deck-footer-note b { color:var(--ink); font-weight:600; }
+
+/* ===========================================
+   DECK CONTROLS (outside the design system)
+   =========================================== */
+.deck-controls { display:flex; align-items:center; gap:18px; background:rgba(20,35,28,0.85); backdrop-filter:blur(6px); padding:10px 18px; border-radius:999px; }
+.deck-controls button { all:unset; cursor:pointer; color:#e9f0ea; font-family:var(--font-mono); font-size:15px; padding:4px 8px; opacity:0.85; }
+.deck-controls button:hover { opacity:1; }
+.deck-controls .count { color:#9aaba1; font-family:var(--font-mono); font-size:14px; min-width:56px; text-align:center; }
+
+/* edit hotzone / toggle (JS-driven per skill spec) */
+.edit-hotzone { position:fixed; top:0; left:0; width:80px; height:80px; z-index:10000; cursor:pointer; }
+.edit-toggle { position:fixed; top:16px; left:16px; z-index:10001; all:unset; cursor:pointer; opacity:0; pointer-events:none; transition:opacity .3s ease; background:var(--forest); color:var(--on-forest); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 8px 20px rgba(0,0,0,.25); }
+.edit-toggle.show, .edit-toggle.active { opacity:1; pointer-events:auto; }
+[contenteditable="true"] { outline: 2px dashed var(--accent); outline-offset:4px; cursor:text; }
+
+/* ===========================================
+   SLIDE 1 — TITLE
+   =========================================== */
+.s-title .pad { padding:0 140px; display:flex; align-items:center; height:100%; }
+.s-title .grid { display:grid; grid-template-columns:1.15fr 0.85fr; gap:110px; align-items:center; width:100%; }
+.product-card { background:var(--surface); border:1px solid var(--line); border-radius:28px; padding:40px; box-shadow:0 40px 80px -25px rgba(20,35,28,0.22); }
+.product-card .row { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+.product-card .label { color:var(--muted); font-size:16px; font-family:var(--font-mono); }
+.product-card h3 { font-size:34px; margin:0 0 6px; color:var(--ink); font-weight:700; }
+.product-card .meta { color:var(--muted); font-size:18px; margin-bottom:28px; }
+.product-card .timer { font-size:44px; font-weight:700; color:var(--accent); font-family:var(--font-mono); }
+.product-card .badge { background:var(--sage); color:var(--forest); padding:8px 16px; border-radius:999px; font-size:15px; font-weight:600; }
+.title-team { display:flex; gap:28px; flex-wrap:wrap; margin-top:56px; }
+.title-team .who { font-family:var(--font-mono); font-size:16px; color:var(--muted); }
+.title-team .who b { color:var(--ink); font-weight:600; }
+
+/* ===========================================
+   SLIDE 2 — PROBLEM
+   =========================================== */
+.s-problem .pad { display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 260px; }
+.s-problem .bignum { position:absolute; font-family:var(--font-mono); font-size:520px; font-weight:600; color:var(--sage); top:50%; left:50%; transform:translate(-50%,-58%); z-index:0; user-select:none; line-height:1; }
+.s-problem .content { position:relative; z-index:2; }
+.s-problem .statement { font-size:56px; line-height:1.28; font-weight:600; letter-spacing:-0.01em; color:var(--ink); max-width:1280px; margin:0 auto 36px; }
+.s-problem .statement .accent { color:var(--accent); font-weight:700; }
+.s-problem .sub { max-width:760px; margin:0 auto; font-size:24px; }
+.s-problem .source { margin-top:44px; font-family:var(--font-mono); font-size:15px; color:var(--muted); }
+
+/* ===========================================
+   SLIDE 3 — SOLUTION FLOW
+   =========================================== */
+.s-flow .pad { padding-top:230px; }
+.flow-row { display:grid; grid-template-columns:repeat(4,1fr); gap:36px; margin-top:80px; position:relative; }
+.flow-card { background:var(--surface); border:1px solid var(--line); border-radius:24px; padding:36px 30px; position:relative; }
+.flow-card .circle { width:56px; height:56px; border-radius:50%; background:var(--forest); color:var(--on-forest); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:20px; font-weight:600; margin-bottom:26px; }
+.flow-card h4 { font-size:26px; font-weight:700; margin-bottom:12px; }
+.flow-card p { font-size:17px; color:var(--muted); line-height:1.5; }
+.flow-arrow { position:absolute; top:64px; right:-30px; font-size:26px; color:var(--line); z-index:2; }
+
+/* ===========================================
+   PRODUCT SLIDES (4,5,6,7) — alternating split
+   =========================================== */
+.s-product .pad { padding-top:200px; }
+.split { display:grid; grid-template-columns:640px 1fr; gap:80px; align-items:center; margin-top:20px; }
+.split.reverse { grid-template-columns:1fr 640px; }
+.split.reverse .text-col { order:2; }
+.split.reverse .shot-col { order:1; }
+.bullets { list-style:none; margin-top:34px; display:flex; flex-direction:column; gap:18px; }
+.bullets li { display:flex; gap:16px; font-size:19px; color:var(--ink); line-height:1.5; }
+.bullets li .b-dot { flex:none; width:8px; height:8px; border-radius:50%; background:var(--accent); margin-top:9px; }
+.bullets li b { font-weight:600; }
+.shot-col .shot-frame { transform:translateY(0); }
+
+/* ===========================================
+   SLIDE 8 — ARCHITECTURE
+   =========================================== */
+.s-arch .pad { padding-top:210px; }
+.arch-row { display:flex; align-items:stretch; gap:0; margin-top:70px; }
+.arch-box { background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:30px 26px; width:320px; text-align:center; display:flex; flex-direction:column; justify-content:center; }
+.arch-box.dark { background:var(--forest); color:var(--on-forest); border-color:var(--forest); }
+.arch-box h5 { font-size:21px; font-weight:700; margin-bottom:8px; }
+.arch-box p { font-size:15px; color:var(--muted); line-height:1.45; }
+.arch-box.dark p { color:#b9c8bf; }
+.arch-arrow { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:0 14px; position:relative; }
+.arch-arrow .line { width:100%; height:2px; background:var(--line); position:relative; }
+.arch-arrow .line::after { content:''; position:absolute; right:0; top:50%; transform:translateY(-50%); border-style:solid; border-width:6px 0 6px 10px; border-color:transparent transparent transparent var(--line); }
+.arch-arrow .cap { font-family:var(--font-mono); font-size:13px; color:var(--muted); text-align:center; max-width:180px; }
+.arch-notes { display:flex; gap:22px; margin-top:56px; }
+.arch-chip { flex:1; background:var(--sage); border-radius:16px; padding:22px 24px; }
+.arch-chip .t { font-family:var(--font-mono); font-size:13px; color:var(--forest); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; font-weight:600; }
+.arch-chip p { font-size:16px; color:var(--ink); line-height:1.45; }
+
+/* ===========================================
+   SLIDE 9 — ENGINEERING HIGHLIGHTS (2x2 grid)
+   =========================================== */
+.s-eng .pad { padding-top:200px; }
+.eng-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:50px; }
+.eng-card { background:var(--surface); border:1px solid var(--line); border-radius:22px; padding:34px 38px; }
+.eng-card .top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.eng-card .icon { width:42px; height:42px; border-radius:12px; background:var(--forest); color:var(--on-forest); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; font-size:18px; flex:none; }
+.eng-card h4 { font-size:23px; font-weight:700; }
+.eng-card p { font-size:16.5px; color:var(--muted); line-height:1.5; }
+.weight-bars { display:flex; gap:8px; margin-top:14px; }
+.weight-bars .seg { height:8px; border-radius:4px; background:var(--sage); }
+.weight-bars .seg.on { background:var(--accent); }
+
+/* ===========================================
+   SLIDE 10 — TEAM / CLOSING
+   =========================================== */
+.s-close { background:var(--forest); }
+.s-close .brandmark span, .s-close .kicker { color:var(--on-forest); }
+.s-close .pad { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; height:100%; padding:0 200px; }
+.s-close h2 { font-size:72px; font-weight:800; color:var(--on-forest); line-height:1.08; letter-spacing:-0.02em; margin-bottom:28px; max-width:1300px; }
+.s-close .sub { color:#b9c8bf; max-width:760px; font-size:23px; }
+.team-row { display:flex; gap:20px; margin-top:56px; flex-wrap:wrap; justify-content:center; }
+.team-chip { background:rgba(233,240,234,0.08); border:1px solid rgba(233,240,234,0.25); padding:16px 30px; border-radius:999px; color:var(--on-forest); font-size:19px; font-weight:600; }
+.close-meta { margin-top:64px; font-family:var(--font-mono); font-size:15px; color:#8ea297; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+
+    <!-- ============ SLIDE 1: TITLE ============ -->
+    <section class="slide active s-title">
+      <div class="pad">
+        <div class="grid">
+          <div>
+            <div class="eyebrow reveal r1"><span class="dot"></span><span>Vision2Web · Full Stack Hackathon</span></div>
+            <h1 class="hero-title reveal r2">Surplus food,<br>rescued <span class="accent">in minutes.</span></h1>
+            <p class="sub reveal r3">Donors post what's left. Nearby volunteers and NGOs get matched, pick it up, and deliver it before it expires.</p>
+            <div class="reveal r4" style="margin-top:38px;"><span class="pill">Theme 2 — Food Donation Coordinator</span></div>
+            <div class="title-team reveal r5">
+              <span class="who"><b>Tarunkumar S</b></span>
+              <span class="who"><b>Rithish Barath N</b></span>
+              <span class="who"><b>Manish K</b></span>
+            </div>
+          </div>
+          <div class="reveal r4">
+            <div class="product-card">
+              <div class="row"><span class="label">Example donation</span><span class="label">1.2 km away</span></div>
+              <h3>80 vegetarian meals</h3>
+              <div class="meta">Hostel mess, pickup by 8:30 pm</div>
+              <div class="row"><span class="timer">00:42:14</span><span class="badge">Volunteer on the way</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 2: PROBLEM ============ -->
+    <section class="slide s-problem">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">02 / 10</div>
+      <div class="bignum">1B</div>
+      <div class="pad">
+        <div class="content">
+          <div class="eyebrow reveal r1" style="justify-content:center;"><span class="dot"></span><span>Why it matters</span></div>
+          <p class="statement reveal r2">Households wasted <span class="accent">over 1 billion meals a day</span> in 2022, while 783 million people faced hunger.</p>
+          <p class="sub reveal r3">Surplus food is rarely the hard part. The hard part is finding someone nearby who can collect it before it spoils.</p>
+          <p class="source reveal r4">Source: UNEP Food Waste Index Report 2024</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 3: SOLUTION FLOW ============ -->
+    <section class="slide s-flow">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">03 / 10</div>
+      <div class="pad">
+        <div class="eyebrow reveal r1"><span class="dot"></span><span>How it works</span></div>
+        <h2 class="slide-title reveal r2">From surplus to someone's plate — <span class="accent">end to end.</span></h2>
+        <div class="flow-row">
+          <div class="flow-card reveal r3"><div class="circle">01</div><h4>Post</h4><p>Donor lists food in under a minute: category, servings, expiry and a pickup spot on the map.</p></div>
+          <div class="flow-card reveal r4"><div class="circle">02</div><h4>Match</h4><p>An explainable score ranks nearby volunteers and NGOs by urgency, distance, capacity and fit.</p><span class="flow-arrow">→</span></div>
+          <div class="flow-card reveal r5"><div class="circle">03</div><h4>Track</h4><p>Both sides agree, the pickup starts, and the trip is followed live on a map to delivery.</p><span class="flow-arrow">→</span></div>
+          <div class="flow-card reveal r6"><div class="circle">04</div><h4>Deliver</h4><p>Dashboards update on their own — servings rescued, deliveries completed, impact visible.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 4: PRODUCT — POST FOOD ============ -->
+    <section class="slide s-product">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">04 / 10</div>
+      <div class="pad">
+        <div class="split">
+          <div class="text-col">
+            <div class="eyebrow reveal r1"><span class="dot"></span><span>Product · Donors</span></div>
+            <h2 class="slide-title reveal r2">Post surplus food in <span class="accent">under a minute.</span></h2>
+            <ul class="bullets reveal r3">
+              <li><span class="b-dot"></span><span>Category, veg or non-veg, servings, cooking time and whether it must stay refrigerated</span></li>
+              <li><span class="b-dot"></span><span>Expiry and collect-by time in IST, plus an optional photo</span></li>
+              <li><span class="b-dot"></span><span>Drag the pin or use current location to mark the exact pickup spot</span></li>
+            </ul>
+          </div>
+          <div class="shot-col reveal r4">
+            <div class="shot-frame"><div class="chrome"><i></i><i></i><i></i></div><img src="screenshots/post-food.png" alt="Post surplus food form"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 5: PRODUCT — MATCHING ============ -->
+    <section class="slide s-product">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">05 / 10</div>
+      <div class="pad">
+        <div class="split reverse">
+          <div class="text-col">
+            <div class="eyebrow reveal r1"><span class="dot"></span><span>Product · Discover</span></div>
+            <h2 class="slide-title reveal r2">An explainable match score, <span class="accent">not a black box.</span></h2>
+            <ul class="bullets reveal r3">
+              <li><span class="b-dot"></span><span><b>Urgency 40 · Distance 30 · Capacity 20 · Food fit 10</b> — fixed weights, unit-tested</span></li>
+              <li><span class="b-dot"></span><span>A plain-language reason comes with every score</span></li>
+              <li><span class="b-dot"></span><span>Homes closed until the food expires are left out automatically</span></li>
+            </ul>
+          </div>
+          <div class="shot-col reveal r4">
+            <div class="shot-frame"><div class="chrome"><i></i><i></i><i></i></div><img src="screenshots/discover-match.png" alt="Donation match score detail"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 6: PRODUCT — LIVE TRACKING ============ -->
+    <section class="slide s-product">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">06 / 10</div>
+      <div class="pad">
+        <div class="split">
+          <div class="text-col">
+            <div class="eyebrow reveal r1"><span class="dot"></span><span>Product · Pickups</span></div>
+            <h2 class="slide-title reveal r2">Every pickup, tracked live <span class="accent">until it's delivered.</span></h2>
+            <ul class="bullets reveal r3">
+              <li><span class="b-dot"></span><span>Mutual acceptance: an atomic claim means two acceptances for the same food never both succeed</span></li>
+              <li><span class="b-dot"></span><span>Claimed → Arrived → Picked up → In transit → Delivered, with the donor's screen updating on its own</span></li>
+              <li><span class="b-dot"></span><span>Location sharing needs an explicit tap and stops the moment it's delivered</span></li>
+            </ul>
+          </div>
+          <div class="shot-col reveal r4">
+            <div class="shot-frame"><div class="chrome"><i></i><i></i><i></i></div><img src="screenshots/pickup-tracker.png" alt="Live pickup tracker"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 7: PRODUCT — ADMIN OPS ============ -->
+    <section class="slide s-product">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">07 / 10</div>
+      <div class="pad">
+        <div class="split reverse">
+          <div class="text-col">
+            <div class="eyebrow reveal r1"><span class="dot"></span><span>Product · Admin</span></div>
+            <h2 class="slide-title reveal r2">Operators see everything moving, <span class="accent">in one screen.</span></h2>
+            <ul class="bullets reveal r3">
+              <li><span class="b-dot"></span><span>Live map of every active pickup, plus stalled-pickup and expiring-soon alerts</span></li>
+              <li><span class="b-dot"></span><span>A users directory with role filters and search</span></li>
+              <li><span class="b-dot"></span><span>Platform impact at a glance — servings rescued, deliveries completed</span></li>
+            </ul>
+          </div>
+          <div class="shot-col reveal r4">
+            <div class="shot-frame"><div class="chrome"><i></i><i></i><i></i></div><img src="screenshots/admin-ops.png" alt="Admin operations dashboard"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 8: ARCHITECTURE ============ -->
+    <section class="slide s-arch">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">08 / 10</div>
+      <div class="pad">
+        <div class="eyebrow reveal r1"><span class="dot"></span><span>Under the hood</span></div>
+        <h2 class="slide-title reveal r2">A straightforward, secure request path.</h2>
+
+        <div class="arch-row reveal r3">
+          <div class="arch-box"><h5>Browser</h5><p>httpOnly cookie only — the JWT never reaches page JavaScript</p></div>
+          <div class="arch-arrow"><div class="line"></div><span class="cap">/api/session/*<br>login · signup · phone · logout</span></div>
+          <div class="arch-box dark"><h5>Next.js 16</h5><p>Sets the cookie, proxies backend calls, streams SSE</p></div>
+          <div class="arch-arrow"><div class="line"></div><span class="cap">/api/backend/*<br>adds Bearer token, blocks cross-site writes</span></div>
+          <div class="arch-box dark"><h5>Spring Boot 4.1</h5><p>Checks JWT + role on every call · Java 21</p></div>
+          <div class="arch-arrow"><div class="line"></div><span class="cap">Spring Data JPA<br>Flyway migrations</span></div>
+          <div class="arch-box"><h5>PostgreSQL</h5><p>Hosted on Supabase, used as plain Postgres</p></div>
+        </div>
+
+        <div class="arch-notes reveal r4">
+          <div class="arch-chip"><div class="t">Realtime</div><p>Server-Sent Events from Spring, relayed through the Next.js proxy for live pickup tracking</p></div>
+          <div class="arch-chip"><div class="t">Storage</div><p>Supabase Storage for food photos, written only by the backend's service role</p></div>
+          <div class="arch-chip"><div class="t">Lock-down</div><p>Row Level Security is on with no policies — Supabase's public Data API can't read the tables</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 9: ENGINEERING HIGHLIGHTS ============ -->
+    <section class="slide s-eng">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">09 / 10</div>
+      <div class="pad">
+        <div class="eyebrow reveal r1"><span class="dot"></span><span>Engineering highlights</span></div>
+        <h2 class="slide-title reveal r2">Four decisions worth explaining.</h2>
+
+        <div class="eng-grid">
+          <div class="eng-card reveal r3">
+            <div class="top"><div class="icon">%</div><h4>Explainable matching</h4></div>
+            <p>Fixed weights — urgency 40, distance 30, capacity 20, food fit 10 — with a reason string, unit-tested.</p>
+            <div class="weight-bars"><div class="seg on" style="flex:40"></div><div class="seg on" style="flex:30;opacity:.7"></div><div class="seg" style="flex:20"></div><div class="seg" style="flex:10"></div></div>
+          </div>
+          <div class="eng-card reveal r4">
+            <div class="top"><div class="icon">◉</div><h4>Live tracking</h4></div>
+            <p>Server-Sent Events stream location from Spring through the Next.js proxy; a strict state machine allows only valid pickup transitions.</p>
+          </div>
+          <div class="eng-card reveal r5">
+            <div class="top"><div class="icon">{ }</div><h4>Full-stack</h4></div>
+            <p>Next.js 16 + TypeScript + Tailwind v4 on the front; Spring Boot 4.1 (Java 21) + Spring Data JPA + Flyway on the back; Postgres on Supabase.</p>
+          </div>
+          <div class="eng-card reveal r6">
+            <div class="top"><div class="icon">✓</div><h4>Auth, two ways</h4></div>
+            <p>Donors sign in with phone OTP (Phone.email); volunteers, NGOs and admins with JWT (HS256) + BCrypt — role-checked on every request.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 10: TEAM / CLOSING ============ -->
+    <section class="slide s-close slide-dark">
+      <div class="brandmark"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.6"/></svg></div><span>FoodRescue</span></div>
+      <div class="kicker">10 / 10</div>
+      <div class="pad">
+        <div class="eyebrow reveal r1" style="justify-content:center;"><span class="dot"></span><span>Vision2Web · Full Stack Hackathon · Theme 2</span></div>
+        <h2 class="reveal r2">Ready to rescue food today.</h2>
+        <p class="sub reveal r3">Donor to delivery, matched by an explainable score and tracked live — the whole loop, working end to end.</p>
+        <div class="team-row reveal r4">
+          <span class="team-chip">Tarunkumar S</span>
+          <span class="team-chip">Rithish Barath N</span>
+          <span class="team-chip">Manish K</span>
+        </div>
+        <div class="close-meta reveal r5">Thank you — questions welcome.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="deck-controls">
+  <button id="prevBtn" aria-label="Previous slide">←</button>
+  <span class="count" id="slideCount">1 / 10</span>
+  <button id="nextBtn" aria-label="Next slide">→</button>
+</div>
+
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Arrow keys / Space / PageUp-Down / wheel / swipe.
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = document.querySelectorAll('.slide');
+        this.currentSlide = 0;
+        this.stage = document.getElementById('deckStage');
+        this.countEl = document.getElementById('slideCount');
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupWheelNav();
+        document.getElementById('prevBtn').addEventListener('click', () => this.showSlide(this.currentSlide - 1));
+        document.getElementById('nextBtn').addEventListener('click', () => this.showSlide(this.currentSlide + 1));
+        this.showSlide(0);
+    }
+    setupStageScale() {
+        const scale = () => {
+            const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            const x = (window.innerWidth - 1920 * factor) / 2;
+            const y = (window.innerHeight - 1080 * factor) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+        };
+        scale();
+        window.addEventListener('resize', scale);
+    }
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.getAttribute('contenteditable') === 'true') return;
+            if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); this.showSlide(this.currentSlide + 1); }
+            if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); this.showSlide(this.currentSlide - 1); }
+        });
+    }
+    setupTouchNav() {
+        let sx = 0;
+        document.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - sx;
+            if (Math.abs(dx) > 60) dx < 0 ? this.showSlide(this.currentSlide + 1) : this.showSlide(this.currentSlide - 1);
+        }, { passive: true });
+    }
+    setupWheelNav() {
+        let locked = false;
+        window.addEventListener('wheel', (e) => {
+            if (locked) return;
+            if (Math.abs(e.deltaY) < 30) return;
+            locked = true;
+            e.deltaY > 0 ? this.showSlide(this.currentSlide + 1) : this.showSlide(this.currentSlide - 1);
+            setTimeout(() => locked = false, 700);
+        }, { passive: true });
+    }
+    showSlide(index) {
+        this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === this.currentSlide);
+            slide.classList.toggle('visible', i === this.currentSlide);
+        });
+        this.countEl.textContent = `${this.currentSlide + 1} / ${this.slides.length}`;
+    }
+}
+const presentation = new SlidePresentation();
+
+/* ===========================================
+   INLINE EDITING — hover hotzone (400ms grace) + E key
+   Edits persist to localStorage per slide index.
+   =========================================== */
+class InlineEditor {
+    constructor() {
+        this.isActive = false;
+        this.toggle = document.getElementById('editToggle');
+        this.hotzone = document.getElementById('editHotzone');
+        this.editableSelector = 'h1, h2, h3, h4, h5, p, span:not(.dot):not(.b-dot), li, div.who, div.team-chip';
+        this.bindHover();
+        this.toggle.addEventListener('click', () => this.toggleEditMode());
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'e' || e.key === 'E') && document.activeElement.getAttribute('contenteditable') !== 'true') {
+                this.toggleEditMode();
+            }
+            if (e.key === 's' && (e.ctrlKey || e.metaKey) && this.isActive) { e.preventDefault(); this.save(); }
+        });
+        this.restore();
+    }
+    bindHover() {
+        let hideTimeout = null;
+        const show = () => { clearTimeout(hideTimeout); this.toggle.classList.add('show'); };
+        const hide = () => { hideTimeout = setTimeout(() => { if (!this.isActive) this.toggle.classList.remove('show'); }, 400); };
+        this.hotzone.addEventListener('mouseenter', show);
+        this.hotzone.addEventListener('mouseleave', hide);
+        this.toggle.addEventListener('mouseenter', show);
+        this.toggle.addEventListener('mouseleave', hide);
+        this.hotzone.addEventListener('click', () => this.toggleEditMode());
+    }
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        this.toggle.classList.toggle('active', this.isActive);
+        document.querySelectorAll('.slide').forEach(slide => {
+            slide.querySelectorAll(this.editableSelector).forEach(el => {
+                el.setAttribute('contenteditable', this.isActive ? 'true' : 'false');
+            });
+        });
+        if (!this.isActive) this.save();
+    }
+    save() {
+        const data = {};
+        document.querySelectorAll('.slide').forEach((slide, i) => {
+            data[i] = slide.innerHTML;
+        });
+        try { localStorage.setItem('foodrescue-deck-edits', JSON.stringify(data)); } catch (e) {}
+    }
+    restore() {
+        try {
+            const raw = localStorage.getItem('foodrescue-deck-edits');
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            document.querySelectorAll('.slide').forEach((slide, i) => {
+                if (data[i]) slide.innerHTML = data[i];
+            });
+        } catch (e) {}
+    }
+}
+new InlineEditor();
+</script>
+</body>
+</html>
